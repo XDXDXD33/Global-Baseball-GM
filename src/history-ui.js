@@ -35,7 +35,7 @@ async function onlineImport(state,persist,render){
     completed++;
    }
    if(report)report.textContent="匯入進度 "+Math.min(i+batch.length,files.length)+" / "+files.length+" 個檔案；已讀取 "+completed+" 個；處理 "+rows.toLocaleString()+" 筆紀錄。";
-   await persist();
+   if((i+batch.length)%15===0||i+batch.length>=files.length)await persist();
   }
  }finally{
   button.disabled=false;button.textContent="重新匯入／補齊歷史資料";
