@@ -10,6 +10,11 @@ function scoreTable(game){
  const cell=(id,i)=>game.lineScore[id]?.[i]??"—";
  return `<div class="table-wrap"><table class="score-table"><thead><tr><th>球隊</th>${Array.from({length:max},(_,i)=>`<th>${i+1}</th>`).join("")}<th>R</th></tr></thead><tbody><tr><th>${esc(club(away)?.short||away)}</th>${Array.from({length:max},(_,i)=>`<td>${cell(away,i)}</td>`).join("")}<td><b>${game.score[away]}</b></td></tr><tr><th>${esc(club(home)?.short||home)}</th>${Array.from({length:max},(_,i)=>`<td>${cell(home,i)}</td>`).join("")}<td><b>${game.score[home]}</b></td></tr></tbody></table></div>`;
 }
+function boxScoreHtml(game){
+ const batters=Object.entries(game.batterStats).map(([id,x])=>({name:game.players[id]?.name||id,...x})).filter(x=>x.PA>0).sort((a,b)=>b.AB-a.AB);
+ const pitchers=Object.entries(game.pitcherStats).map(([id,x])=>({name:game.players[id]?.name||id,...x})).filter(x=>x.pitches>0);
+ return `<div class="boxscore-grid"><div><h4>打者成績</h4><div class="table-wrap"><table><thead><tr><th>球員</th><th>PA</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th></tr></thead><tbody>${batters.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.PA}</td><td>${p.AB}</td><td>${p.H}</td><td>${p.HR}</td><td>${p.RBI}</td><td>${p.BB}</td><td>${p.K}</td></tr>`).join("")}</tbody></table></div></div><div><h4>投手成績</h4><div class="table-wrap"><table><thead><tr><th>投手</th><th>IP</th><th>H</th><th>ER</th><th>BB</th><th>K</th><th>P</th></tr></thead><tbody>${pitchers.map(p=>`<tr><td>${esc(p.name)}</td><td>${Math.floor(p.outs/3)}.${p.outs%3}</td><td>${p.H}</td><td>${p.ER}</td><td>${p.BB}</td><td>${p.K}</td><td>${p.pitches}</td></tr>`).join("")}</tbody></table></div></div></div>`;
+}
 function currentPitcherOptions(game,state){
  const teamId=game.fixture.homeId===state.clubId?game.fixture.homeId:game.fixture.awayId;
  return state.players.filter(p=>p.clubId===teamId&&["SP","RP","P"].includes(p.position)&&p.id!==game.pitcherId[teamId]&&!(game.usedPitchers[teamId]||[]).includes(p.id));
@@ -66,7 +71,7 @@ export function bindGamePage(state,persist,render){
  document.querySelector("#apply-pinch")?.addEventListener("click",()=>{const id=document.querySelector("#pinch-hitter")?.value,g=state.currentGame;if(!id||!g)return;try{const team=state.clubId,batter=g.players[g.lineups[team][g.battingIndex[team]%g.lineups[team].length]];substituteBatter(g,team,batter.id,id);persist();render();}catch(e){alert(e.message);}});
  document.querySelector("#finish-matchday")?.addEventListener("click",()=>{
   const userFixture=state.schedule.find(x=>x.id===state.currentGame.id),game=state.currentGame;
-  const userResult=applyGameResult(userFixture,game);state.schedule=state.schedule.map(x=>x.id===userFixture.id?userResult:x);recordStats(state,game);settleEconomy(state,userFixture,game);state.gameArchive.push({fixture:userResult,batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)});
+  const userResult=applyGameResult(userFixture,game);const archive={fixture:{...userResult},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)};delete userResult.boxScore;state.schedule=state.schedule.map(x=>x.id===userFixture.id?userResult:x);recordStats(state,game);settleEconomy(state,userFixture,game);state.gameArchive.push(archive);if(state.gameArchive.length>30)state.gameArchive.shift();
   const today=state.schedule.filter(x=>x.matchday===state.matchday&&x.status==="scheduled");
   for(const fixture of today){const ai=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics});simulateGame(ai);const result=applyGameResult(fixture,ai);delete result.boxScore;state.schedule=state.schedule.map(x=>x.id===fixture.id?result:x);recordStats(state,ai);settleEconomy(state,fixture,ai);}
   state.currentGame=null;state.matchday++;
