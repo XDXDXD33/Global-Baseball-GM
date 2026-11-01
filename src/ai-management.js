@@ -2,6 +2,7 @@ import {LEAGUE} from "./data.js";
 import {estimatePlayerAbility,estimatePlayerSalary} from "./rules.js";
 import {buildDefaultLineup} from "./game-engine.js";
 import {calculateTradeValue,executeMultiPlayerTrade} from "./trade-engine.js";
+import {manageAIProspects} from "./draft-engine.js";
 
 const BAT_POS=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
 const PITCHER=p=>["SP","RP","P"].includes(p.position);
@@ -185,6 +186,7 @@ export function runAIClubManagement(state,{phase="monthly"}={}){
   finance.strategy=teamStrategy(state,teamId);
   if(phase==="offseason")renewAIContracts(state,teamId);
   else renewAIContracts(state,teamId);
+  manageAIProspects(state,teamId);
   fillRoster(state,teamId);
   optimizeLineup(state,teamId);
   finance.lastReview=state.matchday||0;
