@@ -67,7 +67,7 @@ function currentBatter(game){const id=teamAtBat(game),lineup=game.lineups[id];re
 function pitcherFor(game){return game.players[game.pitcherId[teamOnField(game)]];}
 function effectivePitchRating(game,pitcher,key){
  const ps=statsFor(game.pitcherStats,pitcher.id),limit=rating(pitcher,"stamina",55)*1.25;
- const fatigue=Math.max(0,ps.pitches-limit)*.22;
+ const fatigue=Math.max(0,ps.pitches+(game.workload?.[pitcher.id]||0)-limit)*.22;
  return clamp(rating(pitcher,key)-fatigue,10,100);
 }
 function recordRun(game,teamId,runnerId){
@@ -177,17 +177,17 @@ function completePA(game,batter,teamId,kind){
  if(kind==="HBP")log(game,batter.name+" 遭觸身球保送");
 }
 function random(game){game.rngState=(Math.imul(game.rngState,1664525)+1013904223)>>>0;return game.rngState/4294967296;}
-export function createGame({fixture,players,lineups,seed=1,tactics={},userTeamId=null}){
+export function createGame({fixture,players,lineups,seed=1,tactics={},userTeamId=null,workload={}}){
  const byId=Object.fromEntries(players.map(p=>[p.id,clonePlayer(p)]));
  const starter=id=>{const rotation=lineups[id]?.rotation||[],slot=rotation.length?(Math.max(1,fixture.matchday||1)-1)%rotation.length:0;return byId[rotation[slot]]||players.find(p=>p.clubId===id&&p.position==="SP");};
  const lineupFor=id=>lineups[id]?.lineup?.filter(pid=>byId[pid]?.clubId===id)||players.filter(p=>p.clubId===id&&!["SP","RP","P"].includes(p.position)).slice(0,9).map(p=>p.id);
  const home=starter(fixture.homeId),away=starter(fixture.awayId);
  if(!home||!away)throw new Error("兩隊都需要至少一名先發投手");
  for(const id of [fixture.homeId,fixture.awayId])if(lineupFor(id).length<9)throw new Error("兩隊都需要至少九名可用打者");
- return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[0],[fixture.awayId]:[0]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},bullpens:{[fixture.homeId]:[...(lineups[fixture.homeId]?.bullpen||[])],[fixture.awayId]:[...(lineups[fixture.awayId]?.bullpen||[])]},usedPitchers:{[fixture.homeId]:[home.id],[fixture.awayId]:[away.id]},userTeamId,commands:{},autoManageUserTeam:false,pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
+ return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[0],[fixture.awayId]:[0]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},bullpens:{[fixture.homeId]:[...(lineups[fixture.homeId]?.bullpen||[])],[fixture.awayId]:[...(lineups[fixture.awayId]?.bullpen||[])]},usedPitchers:{[fixture.homeId]:[home.id],[fixture.awayId]:[away.id]},userTeamId,workload:{...workload},commands:{},autoManageUserTeam:false,pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
 }
 function autoManagePitcher(game,teamId){
- if(game.userTeamId===teamId&&!game.autoManageUserTeam)return;const current=game.players[game.pitcherId[teamId]],ps=statsFor(game.pitcherStats,current.id),hook=game.tactics[teamId]?.bullpenHook||"normal",factor=hook==="quick" ? .95 : hook==="long"?1.7:1.35,limit=Math.max(55,rating(current,"stamina",50)*factor);if(ps.pitches<limit)return;const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
+ if(game.userTeamId===teamId&&!game.autoManageUserTeam)return;const current=game.players[game.pitcherId[teamId]],ps=statsFor(game.pitcherStats,current.id),hook=game.tactics[teamId]?.bullpenHook||"normal",factor=hook==="quick" ? .95 : hook==="long"?1.7:1.35,limit=Math.max(55,rating(current,"stamina",50)*factor);if(ps.pitches+(game.workload?.[current.id]||0)<limit)return;const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
 }
 function trySteal(game,teamId,force=false){
  const runnerId=game.bases[0];if(!runnerId||game.bases[1]||game.outs>=2)return;const tactic=game.tactics[teamId]?.stealAggression||"normal";if(!force&&tactic==="conservative")return;const runner=game.players[runnerId],catcher=game.players[game.lineups[teamOnField(game)].find(id=>game.players[id]?.position==="C")],speed=rating(runner,"speed"),arm=rating(catcher,"arm");const attempt=tactic==="aggressive" ? .045 : .014;if(!force&&random(game)>attempt*(.7+speed/100))return;if(random(game)<clamp(.70+(speed-arm)*.004+(rating(runner,"stealing")-50)*.002,.42,.92)){game.bases[1]=runnerId;game.bases[0]=null;statsFor(game.batterStats,runnerId).SB++;log(game,runner.name+" 盜上二壘");}else{game.bases[0]=null;statsFor(game.batterStats,runnerId).CS++;game.outs++;statsFor(game.pitcherStats,game.pitcherId[teamOnField(game)]).outs++;log(game,runner.name+" 盜壘失敗遭觸殺");if(game.outs>=3){nextHalf(game);game.currentPA=null;}}
