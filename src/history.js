@@ -37,9 +37,12 @@ export function parseCsv(text){
 }
 const num=v=>v===""||v===undefined||v===null?null:(Number.isFinite(Number(v))?Number(v):null);
 const slug=s=>String(s||"unknown").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"");
-export function resolveHistoricalTeam(name,year){
- const clean=String(name||"").trim();const found=TEAM_ERAS.find(t=>t.name===clean&&year>=t.from&&year<=t.to);
- return found?{teamEraId:found.id,franchiseId:found.franchiseId,teamName:found.name}:{teamEraId:"unmapped-"+slug(clean)+"-"+year,franchiseId:null,teamName:clean||"未知球隊"};
+const TEAM_ID_FRANCHISE = {AAA:"dragons",ACC:"brothers",ADD:"lions",ABB:"san_shang_tigers",AEE:"guardians",AFF:"times_eagles",AEG:"guardians",AHH:"whales",AJJ:"monkeys",AII:"cobras",AJK:"monkeys",AIL:"cobras",AEM:"guardians",ACN:"brothers",AEO:"guardians",AJL:"monkeys",AKP:"hawks"};
+const TEAM_NAME_FRANCHISE = {"味全":"dragons","味全龍":"dragons","兄弟":"brothers","兄弟象":"brothers","中信兄弟":"brothers","統一":"lions","統一獅":"lions","統一7-ELEVEn":"lions","統一7-ELEVEn獅":"lions","三商":"san_shang_tigers","三商虎":"san_shang_tigers","俊國":"guardians","俊國熊":"guardians","興農":"guardians","興農牛":"guardians","義大":"guardians","義大犀牛":"guardians","富邦":"guardians","富邦悍將":"guardians","時報":"times_eagles","時報鷹":"times_eagles","和信":"whales","和信鯨":"whales","中信鯨":"whales","第一金剛":"monkeys","La New":"monkeys","La New熊":"monkeys","Lamigo":"monkeys","Lamigo桃猿":"monkeys","樂天":"monkeys","樂天桃猿":"monkeys","誠泰":"cobras","誠泰太陽":"cobras","誠泰Cobras":"cobras","米迪亞":"cobras","米迪亞暴龍":"cobras","台鋼":"hawks","台鋼雄鷹":"hawks"};
+export function resolveHistoricalTeam(name,year,teamId=""){
+ const clean=String(name||"").trim(),franchiseId=TEAM_ID_FRANCHISE[teamId]||TEAM_NAME_FRANCHISE[clean]||null;
+ const found=franchiseId?TEAM_ERAS.find(t=>t.franchiseId===franchiseId&&year>=t.from&&year<=t.to):TEAM_ERAS.find(t=>t.name===clean&&year>=t.from&&year<=t.to);
+ return found?{teamEraId:found.id,franchiseId:found.franchiseId,teamName:clean||found.name,canonicalEraName:found.name}:{teamEraId:"unmapped-"+slug(clean)+"-"+year,franchiseId:null,teamName:clean||"未知球隊",canonicalEraName:null};
 }
 export function inningsToNumber(value){
  if(value===null||value===undefined||value==="")return null;const s=String(value);const m=s.match(/^(\d+)(?:\.(\d))?$/);if(!m)return num(value);const outs=Number(m[2]||0);if(outs>2)return null;return Number(m[1])+outs/3;
@@ -70,7 +73,7 @@ export function importHistoryCsv({path,name,text},history){
  if(meta.kind==="players"){
   for(const r of rows){if(!r.ID||!r.Name)continue;const prior=next.players[r.ID]||{};next.players[r.ID]={...prior,id:r.ID,name:r.Name,handedness:r.Handedness||prior.handedness||"",birthday:r.Birthday||prior.birthday||"",country:r.Country||prior.country||"",fullName:r["Full Name"]||prior.fullName||"",source:HISTORY_SOURCE.id};added++;}
  }else if(meta.kind==="standings"){
-  for(const r of rows){const year=num(r.Year);if(!year)continue;const team=resolveHistoricalTeam(r.Team,year);next.standings.push({year,teamId:r["Team ID"],oldTeamId:r["Old ID"]||"",teamName:r.Team,teamNickname:r["Team Nickname"],wins:num(r.Win),losses:num(r.Lose),ties:num(r.Tie),...team,source:HISTORY_SOURCE.id});added++;}
+  for(const r of rows){const year=num(r.Year);if(!year)continue;const team=resolveHistoricalTeam(r.Team,year,r["Team ID"]);next.standings.push({year,teamId:r["Team ID"],oldTeamId:r["Old ID"]||"",teamName:r.Team,teamNickname:r["Team Nickname"],wins:num(r.Win),losses:num(r.Lose),ties:num(r.Tie),...team,source:HISTORY_SOURCE.id});added++;}
  }else{
   if(!Number.isInteger(meta.year)||meta.year<1990||meta.year>2026)throw new Error("球季年份必須介於 1990 至 2026");
   const target=next[meta.kind];
