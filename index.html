@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101b2a">
+  <title>Global Baseball GM</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Global Baseball GM 首頁"><span class="brand-mark">GB</span><span>GLOBAL <b>BASEBALL GM</b><small>CPBL FRONT OFFICE SIMULATOR</small></span></a>
+    <div class="top-actions"><span id="save-indicator" class="save-indicator">尚未建立球團</span><button id="save-btn" class="button button-quiet" disabled>儲存進度</button></div>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="side-label">球團管理</div>
+      <button class="nav-item active" data-page="dashboard">▦ <span>總覽</span></button>
+      <button class="nav-item" data-page="roster">♙ <span>球員名單</span></button>
+      <button class="nav-item" data-page="league">▤ <span>聯盟戰況</span></button>
+      <button class="nav-item" data-page="settings">⚙ <span>聯盟設定</span></button>
+      <div class="sidebar-foot">EARLY ACCESS <span>PHASE 1</span></div>
+    </aside>
+    <section class="content">
+      <div id="welcome" class="welcome-panel">
+        <div class="eyebrow">YOUR CLUB. YOUR LEGACY.</div>
+        <h1>打造屬於你的<br><em>棒球王朝。</em></h1>
+        <p>從中華職棒六隊出發，掌握球員、預算與未來。每一個決定，都將寫進球團歷史。</p>
+        <button id="new-career-btn" class="button button-primary">建立新球團 <span>→</span></button>
+        <div class="welcome-note">第一版資料以示範球員呈現，並清楚標示虛擬資料。</div>
+      </div>
+      <div id="game" hidden>
+        <div class="page-heading"><div><div class="eyebrow" id="season-label">2026 球季</div><h1 id="page-title">球團總覽</h1></div><div class="season-pill">CPBL <span>●</span> 經營模式</div></div>
+        <div id="page-content"></div>
+      </div>
+    </section>
+  </main>
+  <dialog id="career-dialog" class="modal">
+    <form id="career-form">
+      <div class="eyebrow">NEW FRANCHISE</div><h2>建立你的球團</h2>
+      <label>球團名稱<input id="manager-name" maxlength="24" placeholder="例如：新世代棒球經理" required></label>
+      <label>選擇經營球隊<select id="team-select"></select></label>
+      <label>洋將名額上限 <strong id="foreign-value">4 人</strong><input id="foreign-limit" type="range" min="0" max="13" value="4"></label>
+      <p class="field-help">可設定 0 至 13 人。這是遊戲內自訂規則，不代表任何特定現實球季的官方登錄規定。</p>
+      <div class="modal-actions"><button type="button" id="cancel-career" class="button button-quiet">取消</button><button class="button button-primary" type="submit">開始經營 →</button></div>
+    </form>
+  </dialog>
+  <footer>GLOBAL BASEBALL GM <span>資料與能力評分將逐步依可驗證來源建置</span></footer>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
