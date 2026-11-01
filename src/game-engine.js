@@ -294,7 +294,7 @@ export function issueIntentionalWalk(game,teamId){
 export function changePitcher(game,teamId,pitcherId){
  if(game.status!=="live"||teamOnField(game)!==teamId)throw new Error("只能在本隊守備時更換投手");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
- const p=game.players[pitcherId];if(!p||p.clubId!==teamId||!["SP","RP","P"].includes(p.position))throw new Error("只能更換為本隊可用投手");
+ const p=game.players[pitcherId];if(!p||p.clubId!==teamId||!["SP","RP","P"].includes(p.position))throw new Error("只能更換為本隊可用投手");if(Number(game.unavailable?.[pitcherId]?.daysRemaining||0)>0)throw new Error("該投手仍在傷兵名單中");
  if(game.pitcherId[teamId]===pitcherId)throw new Error("該投手已在場上");
  if(game.usedPitchers[teamId]?.includes(pitcherId))throw new Error("該投手已經在本場比賽投過球");
  game.pitcherId[teamId]=pitcherId;game.usedPitchers[teamId].push(pitcherId);log(game,"投手更換："+p.name);return game;
@@ -303,7 +303,7 @@ export function substituteBatter(game,teamId,outPlayerId,newPlayerId){
  if(game.status!=="live"||game.currentPA||teamAtBat(game)!==teamId)throw new Error("請在本隊進攻且打席結束後進行代打");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
  const lineup=game.lineups[teamId],idx=lineup.indexOf(outPlayerId),p=game.players[newPlayerId];
- if(idx<0||!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position))throw new Error("代打必須是本隊未上場的野手");
+ if(idx<0||!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position))throw new Error("代打必須是本隊未上場的野手");if(Number(game.unavailable?.[newPlayerId]?.daysRemaining||0)>0)throw new Error("替補球員仍在傷兵名單中");
  if(lineup.includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下，不能再次出賽");
  lineup[idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(outPlayerId);log(game,"代打："+p.name);return game;
 }
@@ -313,7 +313,7 @@ export function substituteRunner(game,teamId,baseIndex,newPlayerId){
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
  if(!Number.isInteger(baseIndex)||baseIndex<0||baseIndex>2||!game.bases[baseIndex])throw new Error("請選擇有跑者的壘包");
  const oldId=game.bases[baseIndex],old=game.players[oldId],p=game.players[newPlayerId],idx=game.lineups[teamId].indexOf(oldId);
- if(!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position)||idx<0)throw new Error("代跑必須是本隊尚未上場的野手");
+ if(!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position)||idx<0)throw new Error("代跑必須是本隊尚未上場的野手");if(Number(game.unavailable?.[newPlayerId]?.daysRemaining||0)>0)throw new Error("代跑球員仍在傷兵名單中");
  if(game.lineups[teamId].includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下");
  game.bases[baseIndex]=newPlayerId;game.lineups[teamId][idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(oldId);
  log(game,old.name+" 退場，"+p.name+" 擔任代跑");return game;
@@ -324,7 +324,7 @@ export function substituteFielder(game,teamId,outPlayerId,newPlayerId){
  const lineup=game.lineups[teamId],idx=lineup.indexOf(outPlayerId),old=game.players[outPlayerId],p=game.players[newPlayerId];
  if(idx<0||!old||old.position==="DH"||!p||p.clubId!==teamId||["SP","RP","P","DH"].includes(p.position))throw new Error("只能替換本隊場上的守備野手");
  if(lineup.includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下");
- if(!(CAN_DEFEND[old.position]||[]).includes(p.position))throw new Error("替補球員不具備原守位的守備資格");
+ if(!(CAN_DEFEND[old.position]||[]).includes(p.position))throw new Error("替補球員不具備原守位的守備資格");if(Number(game.unavailable?.[newPlayerId]?.daysRemaining||0)>0)throw new Error("替補球員仍在傷兵名單中");
  lineup[idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(outPlayerId);
  log(game,"守備替換："+old.name+" 由 "+p.name+" 接替");return game;
 }
