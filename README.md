@@ -15,7 +15,7 @@ Browser-based baseball GM simulation focused on CPBL, designed for future global
 - 26-player fictional demo rosters for all six clubs, a 120-game-per-team schedule, live pitch-by-pitch play and same-engine quick simulation.
 - Player-controlled batting order, starting rotation, base-running/attack strategy, pinch hitters and pitching changes.
 - Front-office controls for ticket pricing, facility upgrades, free-agent signing, one-for-one and multi-player trades with AI valuation, payroll, gate revenue and monthly finance settlement.
-- Autonomous rival-club management: five AI clubs maintain separate finances, evaluate contender/rebuild strategy, renew selected contracts, sign free agents to fill roster gaps, release weak surplus players, optimize lineups and rotations, and publish transaction reports.
+- Autonomous rival-club management: five AI clubs maintain separate finances, evaluate contender/rebuild strategy, renew selected contracts, sign free agents to fill roster gaps, release weak surplus players, optimize lineups and rotations, and publish transaction reports. AI clubs can also send balanced trade proposals to the player, who can accept or decline them before the trade deadline.
 - Monthly player development with selected training focus, age-aware growth/decline, and cross-game pitcher workload/fatigue.
 - CPBL rule-based extra-inning runners, injury availability, defensive alignment and fielding box scores.
 - Official CPBL half-season postseason qualification, tiebreaker, series advantages and home-field rules.
