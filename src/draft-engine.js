@@ -1,4 +1,5 @@
 import { LEAGUE } from "./data.js";
+import { estimatePlayerAbility, estimatePlayerSalary } from "./rules.js";
 
 const POSITIONS = ["C","1B","2B","3B","SS","LF","CF","RF","SP","RP"];
 const GIVEN = ["林","陳","張","王","李","黃","吳","劉","蔡","楊","周","鄭","許","謝","郭","洪","曾","邱"];
@@ -97,6 +98,46 @@ export function developProspects(state){
  });
  return state.minorLeague;
 }
+
+export function manageAIProspects(state,teamId){
+ if(!teamId||teamId===state.clubId)return [];
+ state.minorLeague??=[];
+ const promoted=[];
+ const roster=state.players.filter(p=>p.clubId===teamId&&!p.retired);
+ if(roster.length>=30)return promoted;
+ const cfg=state.lineups?.[teamId]||{lineup:[],rotation:[],bullpen:[]};
+ const protectedIds=new Set([...(cfg.lineup||[]),...(cfg.rotation||[])]);
+ const prospects=state.minorLeague.filter(p=>p.clubId===teamId).sort((a,b)=>{
+  const score=p=>estimatePlayerAbility(p)+(Number(p.potential)||50)*.12+(Number(p.age)<=21?3:0);
+  return score(b)-score(a);
+ });
+ for(const prospect of prospects){
+  if(state.players.filter(p=>p.clubId===teamId).length>=30)break;
+  const samePosition=state.players.filter(p=>p.clubId===teamId&&p.position===prospect.position&&!p.retired);
+  const replaceable=samePosition.filter(p=>!protectedIds.has(p.id)).sort((a,b)=>estimatePlayerAbility(a)-estimatePlayerAbility(b))[0];
+  if(!replaceable)continue;
+  const prospectScore=estimatePlayerAbility(prospect)+(Number(prospect.potential)||50)*.12+(Number(prospect.age)<=21?3:0);
+  if(prospectScore<estimatePlayerAbility(replaceable)+9)continue;
+  state.players=state.players.filter(p=>p.id!==replaceable.id);
+  state.freeAgents??=[];
+  state.freeAgents.push({...replaceable,clubId:null,contractStatus:"released"});
+  delete state.contracts?.[replaceable.id];
+  for(const key of ["lineup","rotation","bullpen"])cfg[key]=(cfg[key]||[]).filter(id=>id!==replaceable.id);
+  state.minorLeague=state.minorLeague.filter(p=>p.id!==prospect.id);
+  const player={...prospect,rosterLevel:"major",promotedSeason:state.season};
+  delete player.potential;delete player.scoutingConfidence;delete player.developmentMonths;
+  state.players.push(player);
+  state.contracts??={};
+  state.contracts[player.id]={salary:Math.max(180000,Math.round(estimatePlayerSalary(player))),yearsRemaining:2,expirySeason:state.season+1,status:"active",signedSeason:state.season,signingBonus:0};
+  promoted.push(player);
+  state.aiClubReports??=[];
+  state.aiClubReports.push({id:"prospect-"+teamId+"-"+player.id,teamId,season:state.season,matchday:state.matchday||0,type:"promotion",message:teamId+" 將二軍新秀 "+player.name+" 升上一軍，取代 "+replaceable.name});
+  if(state.aiClubReports.length>120)state.aiClubReports.splice(0,state.aiClubReports.length-120);
+  break;
+ }
+ return promoted;
+}
+
 export function getDraftStatus(state){
  const d=state.draft;if(!d)return {status:"not-started",available:[],history:[]};
  return {...d,currentTeamId:d.status==="active"?currentTeam(d):null,userTurn:d.status==="active"&&currentTeam(d)===state.clubId};
