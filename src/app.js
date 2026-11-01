@@ -10,7 +10,7 @@ let page = "dashboard";
 function club(id){ return LEAGUE.clubs.find(c=>c.id===id); }
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function load(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){state=JSON.parse(raw);return true;}}catch(e){console.warn("Save data could not be read",e);}return false;}
-function persist(){if(!state)return;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));$("#save-indicator").textContent="已儲存 · "+new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"}));}
+function persist(){if(!state)return;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));$("#save-indicator").textContent="已儲存 · "+new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});}
 function setup(){
   $("#team-select").innerHTML=LEAGUE.clubs.map(c=>`<option value="${c.id}">${c.name} · ${c.city}</option>`).join("");
   $("#career-dialog").showModal();
