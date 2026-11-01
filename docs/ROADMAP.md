@@ -11,9 +11,9 @@
 - [x] Historical club-era mapping separate from current playable clubs
 - [x] Preserve raw batting, pitching, fielding and standings records
 - [x] Provenance, source notes, rate helpers and tests
-- [ ] Import and audit all source years 1990-2024
+- [x] Add online batch importer for the 105 annual CSVs plus player master and standings (user-triggered, IndexedDB storage)\n- [ ] Run full import in browser and audit all source years 1990-2024
 - [ ] Acquire verified and appropriately licensed 2025-2026 data
-- [ ] Calibrate ratings against season and league context
+- [x] Create sourced cross-era CPBL foreign-star index without fabricated ratings\n- [ ] Calibrate ratings against season and league context
 
 ## Phase 3 - match engine
 - [ ] Schedule generation and standings
