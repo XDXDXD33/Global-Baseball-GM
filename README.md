@@ -1,20 +1,21 @@
 # Global Baseball GM
 
-A browser-based, deep baseball general manager simulation focused on CPBL, with a league-independent architecture for future global expansion.
+Browser-based baseball GM simulation focused on CPBL, designed for future global-league expansion.
 
-## Project direction
-- CPBL as the initial playable league, with six contemporary clubs.
-- Mixed player database: verified real historical/current players and explicitly fictional generated players where evidence is insufficient.
-- Historical CPBL player coverage from 1990 onward, subject to data availability and reuse permissions.
-- Configurable foreign-player roster limit from 0 to 13.
-- At-bat level match simulation.
-- Club finance, player development, scouting, contracts, and international recruitment.
-
-## Development status
-Phase 1 foundation is in progress. Historical statistics and ratings must retain source, season, confidence, and licensing metadata. Missing evidence must never be presented as a verified real-player rating.
+## Current foundation
+- Six contemporary CPBL clubs and franchise setup.
+- Foreign-player limit 0-13 enforced during manual registration and CSV import.
+- Roster management, release action, and real/fictional data labels.
+- CSV import with validation, duplicate detection, and row feedback.
+- CSV template download and JSON save export/import.
+- Position-aware weighted ability estimates (0-100), separate evidence confidence.
+- Local browser saves.
 
 ## Run locally
-Open `index.html` in a modern browser, or serve this directory with any static HTTP server.
+Open `index.html` or serve this directory with a static HTTP server. GitHub Pages requires Pages source = GitHub Actions.
+
+## Tests
+Requires Node.js 20 or later: `npm test`.
 
 ## Data policy
-Only redistribute data whose license permits it. The game supports importing user-provided CSV data and clearly labels estimated or fictional records.
+A source field is provenance metadata, not proof of correctness or redistribution rights. Do not present missing evidence as verified ratings. Fictional players must be clearly labeled. The rating heuristic needs calibration against historical seasons.
