@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createInitialLeagueRoster,buildDefaultLineup,createFreeAgentPool,createLeagueSchedule} from "../src/game-engine.js";
 import {LEAGUE} from "../src/data.js";
-import {initializeContracts,estimatePlayerSalary} from "../src/contract-engine.js";
+import {initializeContracts} from "../src/contract-engine.js";
 import {runAIClubManagement} from "../src/ai-management.js";
 
 test("AI clubs promote a developed prospect over a weak bench player",()=>{
