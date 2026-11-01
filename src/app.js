@@ -1,4 +1,5 @@
 import { LEAGUE, DEMO_PLAYERS, RATING_LABELS } from "./data.js";
+import { validateForeignLimit } from "./rules.js";
 
 const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = "global-baseball-gm-save-v1";
@@ -16,7 +17,7 @@ function setup(){
 function startCareer(e){
   e.preventDefault();
   const team=club($("#team-select").value);
-  state={version:1,leagueId:"cpbl",season:2026,month:1,manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:Number($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players:DEMO_PLAYERS.map(p=>({...p,ratings:{...p.ratings}})),createdAt:new Date().toISOString()};
+  state={version:1,leagueId:"cpbl",season:2026,month:1,manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players:DEMO_PLAYERS.map(p=>({...p,ratings:{...p.ratings}})),createdAt:new Date().toISOString()};
   $("#career-dialog").close();$("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;persist();render();
 }
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
