@@ -161,7 +161,7 @@ function nextHalf(game){
 function addOut(game,pitcher,kind){
  game.outs++;statsFor(game.pitcherStats,pitcher.id).outs++;
  if(kind==="K"){statsFor(game.pitcherStats,pitcher.id).K++;const catcher=pickFielder(game,teamOnField(game),["C"]);if(catcher)fieldingLine(game,catcher.id).PO++;}
- if(kind==="DP"&&game.bases[0]&&game.outs<3){game.bases[0]=null;game.outs++;statsFor(game.pitcherStats,pitcher.id).outs++;}
+ if(kind==="DP"&&game.bases[0]&&game.outs<3){const forced=game.bases[0];game.automaticRunnerIds=(game.automaticRunnerIds||[]).filter(id=>id!==forced);game.bases[0]=null;game.outs++;statsFor(game.pitcherStats,pitcher.id).outs++;}
  if(game.outs>=3)nextHalf(game);
 }
 function checkWalkoff(game){
@@ -228,7 +228,7 @@ function autoManagePitcher(game,teamId){
  if(game.userTeamId===teamId&&!game.autoManageUserTeam)return;const current=game.players[game.pitcherId[teamId]],ps=statsFor(game.pitcherStats,current.id),hook=game.tactics[teamId]?.bullpenHook||"normal",factor=hook==="quick" ? .95 : hook==="long"?1.7:1.35,limit=Math.max(55,rating(current,"stamina",50)*factor);if(ps.pitches+(game.workload?.[current.id]||0)<limit)return;const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
 }
 function trySteal(game,teamId,force=false){
- const runnerId=game.bases[0];if(!runnerId||game.bases[1]||game.outs>=2)return;const tactic=game.tactics[teamId]?.stealAggression||"normal";if(!force&&tactic==="conservative")return;const runner=game.players[runnerId],catcher=game.players[game.lineups[teamOnField(game)].find(id=>game.players[id]?.position==="C")],speed=rating(runner,"speed"),arm=rating(catcher,"arm");const attempt=tactic==="aggressive" ? .045 : .014;if(!force&&random(game)>attempt*(.7+speed/100))return;if(random(game)<clamp(.70+(speed-arm)*.004+(rating(runner,"stealing")-50)*.002,.42,.92)){game.bases[1]=runnerId;game.bases[0]=null;statsFor(game.batterStats,runnerId).SB++;log(game,runner.name+" 盜上二壘");}else{game.bases[0]=null;statsFor(game.batterStats,runnerId).CS++;game.outs++;statsFor(game.pitcherStats,game.pitcherId[teamOnField(game)]).outs++;log(game,runner.name+" 盜壘失敗遭觸殺");if(game.outs>=3){nextHalf(game);game.currentPA=null;}}
+ const runnerId=game.bases[0];if(!runnerId||game.bases[1]||game.outs>=2)return;const tactic=game.tactics[teamId]?.stealAggression||"normal";if(!force&&tactic==="conservative")return;const runner=game.players[runnerId],catcher=game.players[game.lineups[teamOnField(game)].find(id=>game.players[id]?.position==="C")],speed=rating(runner,"speed"),arm=rating(catcher,"arm");const attempt=tactic==="aggressive" ? .045 : .014;if(!force&&random(game)>attempt*(.7+speed/100))return;if(random(game)<clamp(.70+(speed-arm)*.004+(rating(runner,"stealing")-50)*.002,.42,.92)){game.bases[1]=runnerId;game.bases[0]=null;statsFor(game.batterStats,runnerId).SB++;log(game,runner.name+" 盜上二壘");}else{game.bases[0]=null;game.automaticRunnerIds=(game.automaticRunnerIds||[]).filter(id=>id!==runnerId);statsFor(game.batterStats,runnerId).CS++;game.outs++;statsFor(game.pitcherStats,game.pitcherId[teamOnField(game)]).outs++;log(game,runner.name+" 盜壘失敗遭觸殺");if(game.outs>=3){nextHalf(game);game.currentPA=null;}}
 }
 export function advancePitch(game){
  if(game.status!=="live")return {done:true,event:"比賽已結束"};
@@ -340,7 +340,7 @@ export function substituteRunner(game,teamId,baseIndex,newPlayerId){
  const oldId=game.bases[baseIndex],old=game.players[oldId],p=game.players[newPlayerId],idx=game.lineups[teamId].indexOf(oldId);
  if(!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position)||idx<0)throw new Error("代跑必須是本隊尚未上場的野手");if(Number(game.unavailable?.[newPlayerId]?.daysRemaining||0)>0)throw new Error("代跑球員仍在傷兵名單中");
  if(game.lineups[teamId].includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下");
- game.bases[baseIndex]=newPlayerId;game.lineups[teamId][idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(oldId);
+ game.bases[baseIndex]=newPlayerId;if(game.automaticRunnerIds?.includes(oldId))game.automaticRunnerIds=game.automaticRunnerIds.map(id=>id===oldId?newPlayerId:id);game.lineups[teamId][idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(oldId);
  log(game,old.name+" 退場，"+p.name+" 擔任代跑");return game;
 }
 export function substituteFielder(game,teamId,outPlayerId,newPlayerId){
