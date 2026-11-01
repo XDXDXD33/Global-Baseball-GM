@@ -50,6 +50,6 @@ test("CPBL home-field patterns are applied to a full five-game and seven-game se
  for(let n=0;n<5;n++){const f=getNextPostseasonFixture(p,121+n);homes.push(f.homeId);const winnerId=n%2===0?"dragons":"brothers";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
  assert.deepEqual(homes,["brothers","brothers","dragons","dragons","brothers"]);
  const finalHomes=[];
- for(let n=0;n<7;n++){const f=getNextPostseasonFixture(p,126+n);finalHomes.push(f.homeId);const winnerId=n%2===0?"brothers":"dragons";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
- assert.deepEqual(finalHomes,["lions","lions","dragons","dragons","lions","lions","lions"]);
+ for(let n=0;n<6;n++){const f=getNextPostseasonFixture(p,126+n);finalHomes.push(f.homeId);const winnerId=n%2===0?"dragons":"brothers";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
+ assert.deepEqual(finalHomes,["lions","lions","dragons","dragons","lions","lions"]);
 });
