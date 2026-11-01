@@ -61,3 +61,43 @@ function dashboard(){
  const rows=calculateStandings(state.schedule||[]);
  return `<div class="panel"><h3>${state.season} CPBL 聯盟戰績</h3><div class="table-wrap"><table><thead><tr><th>排名</th><th>球隊</th><th>場次</th><th>勝</th><th>敗</th><th>和</th><th>勝率</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td><b>${club(x.teamId).name}</b>${x.teamId===state.clubId?' <span class="tag fake">我的球隊</span>':''}</td><td>${x.games}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.ties}</td><td>${x.winPct.toFixed(3)}</td></tr>`).join("")}</tbody></table></div><p class="field-help">六隊循環賽程，每隊 120 場。比賽由同一套引擎逐球結算，AI 球隊也會實際模擬。</p></div>`;
 }
+
+function historyPage(){return renderHistoryPage(state.history);}
+function starPage(){return renderStarMarket(state.history,starSeason);}
+function lineupPage(){return renderLineupPage(state);}
+function operationsPage(){return renderOperationsPage(state);}
+function gamesPage(){return renderGamePage(state);}
+function settingsPage(){
+ return `<div class="panel"><h3>聯盟規則</h3><div class="setting-row"><div><span>聯盟</span><small>第一個可玩版本以 CPBL 為核心</small></div><b>中華職棒</b></div><div class="setting-row"><div><span>洋將名額上限</span><small>開局自訂，允許 0 至 13 人</small></div><b>${state.foreignLimit} 人</b></div><div class="setting-row"><div><span>球季賽程</span><small>六隊循環賽，每隊 120 場</small></div><b>360 場</b></div><div class="setting-row"><div><span>比賽模式</span><small>逐球操作、逐打席操作、快速模擬共用引擎</small></div><b>Live + Sim</b></div></div><div class="panel"><h3>存檔管理</h3><p class="field-help">球團經營進度儲存在此瀏覽器。歷史資料另存 IndexedDB。建議定期匯出 JSON 備份。</p><button id="export-btn" class="button button-quiet">匯出存檔 JSON</button></div>`;
+}
+function render(){
+ if(!state)return;
+ $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
+ const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",settings:"聯盟設定"};
+ $("#page-title").textContent=titles[page]||"球團總覽";$("#season-label").textContent=state.season+" 球季";
+ const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,settings:settingsPage};
+ $("#page-content").innerHTML=(pages[page]||dashboard)();
+ document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
+ document.querySelectorAll("[data-go-page]").forEach(b=>b.addEventListener("click",()=>{page=b.dataset.goPage;render();}));
+ if(page==="roster")bindRosterTools(state,persist,render);
+ if(page==="lineup")bindLineupPage(state,persist,render);
+ if(page==="games")bindGamePage(state,persist,render);
+ if(page==="operations")bindOperationsPage(state,persist,render);
+ if(page==="history")bindHistoryPage(state,persist,render);
+ if(page==="stars")bindStarMarket(y=>{starSeason=y;render();});
+}
+function exportSave(){
+ const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="global-baseball-gm-save.json";a.click();URL.revokeObjectURL(url);
+}
+$("#new-career-btn").addEventListener("click",setup);
+$("#cancel-career").addEventListener("click",()=>$("#career-dialog").close());
+$("#career-form").addEventListener("submit",startCareer);
+$("#foreign-limit").addEventListener("input",e=>$("#foreign-value").textContent=e.target.value+" 人");
+$("#save-btn").addEventListener("click",persist);
+document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>{if(!state)return;page=b.dataset.page;render();}));
+if(load()){
+ $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;$("#save-indicator").textContent="已載入本機存檔";render();
+ readHistoryDB().then(data=>{if(state){state.history=data;render();}});
+}
