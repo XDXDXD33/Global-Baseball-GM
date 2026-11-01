@@ -16,14 +16,18 @@
 - [x] Create sourced cross-era CPBL foreign-star index without fabricated ratings\n- [ ] Calibrate ratings against season and league context
 
 ## Phase 3 - match engine
-- [ ] Schedule generation and standings
-- [ ] Pitch-by-pitch / at-bat resolution
-- [ ] Batter-pitcher matchup, fatigue, baserunners, defense
-- [ ] Box scores and player statistics
+- [x] 120-game-per-team CPBL round-robin schedule and standings
+- [x] Pitch-by-pitch and plate-appearance resolution
+- [x] Batter-pitcher matchup, pitcher fatigue, baserunners, defense, steals and bullpen decisions
+- [x] Box scores, player statistics and game logs
+- [ ] Advanced rules: balks, wild pitches, catcher interference, injury and detailed fielding positions
+- [ ] Postseason series and championship
 
 ## Phase 4 - front-office simulation
-- [ ] Contracts, payroll, gate revenue, attendance, and fanbase
-- [ ] Recruitment, free agency, trades, roster limits, AI club behavior
+- [x] Lineup, starting rotation, batting strategy, base-running and pitcher substitution controls
+- [x] Ticket pricing, training/scouting facility upgrades, free-agent signing, roster limit and foreign-player cap
+- [x] Gate revenue, attendance, monthly payroll, sponsorship and maintenance settlement
+- [ ] Contract negotiation, player trades, AI roster construction and club-level strategy
 
 ## Phase 5 - scouting and long-term careers
 - [ ] Scouting uncertainty and potential
