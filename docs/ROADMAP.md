@@ -57,6 +57,7 @@
 - [x] Three-round amateur draft with AI club picks and user-controlled selections
 - [x] Separate minor-league roster, monthly prospect development and potential ceilings
 - [x] Prospect promotion to the first team and eligible player demotion
+- [x] AI clubs develop minor-league prospects and promote superior prospects over weak reserve players
 - [x] Club-level AI budgets, contender/rebuild strategy and lineup optimization
 
 ## Phase 5 - long-term careers
