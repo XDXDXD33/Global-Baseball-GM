@@ -57,9 +57,9 @@ function statsFor(bucket,id){
  if(!id)return {};
  return bucket[id]||(bucket[id]={PA:0,AB:0,H:0,Singles:0,Doubles:0,Triples:0,HR:0,R:0,RBI:0,BB:0,K:0,HBP:0,SB:0,CS:0,SH:0,SF:0,GDP:0,CI:0,WP:0,PB:0,BK:0,pitches:0,outs:0,ER:0});
 }
-function advanceRunnersOnLoosePitch(game,teamId){
+function advanceRunnersOnLoosePitch(game,teamId,pitcherId){
  const old=[...game.bases];game.bases=[null,null,null];
- for(let i=0;i<3;i++)if(old[i]){if(i===2)recordRun(game,teamId,old[i]);else game.bases[i+1]=old[i];}
+ for(let i=0;i<3;i++)if(old[i]){if(i===2){recordRun(game,teamId,old[i]);if(pitcherId)chargeEarnedRun(game,pitcherId,old[i]);}else game.bases[i+1]=old[i];}
 }
 function maybeInjure(game,player,context){
  if(!player||game.injuries.some(x=>x.playerId===player.id))return;
@@ -237,7 +237,7 @@ export function advancePitch(game){
  if(!batter||!pitcher)throw new Error("打者或投手資料遺失");
  if(!game.currentPA)game.currentPA={batterId:batter.id,pitcherId:pitcher.id,balls:0,strikes:0,pitches:0};
  const pa=game.currentPA,ps=statsFor(game.pitcherStats,pitcher.id);
- if(game.bases.some(Boolean)&&random(game)<.00035){advanceRunnersOnLoosePitch(game,teamId);ps.BK++;log(game,pitcher.name+" 投手犯規，跑者推進");return {done:false,event:"投手犯規",batterId:batter.id,pitcherId:pitcher.id,game};}
+ if(game.bases.some(Boolean)&&random(game)<.00035){advanceRunnersOnLoosePitch(game,teamId,pitcher.id);ps.BK++;log(game,pitcher.name+" 投手犯規，跑者推進");return {done:false,event:"投手犯規",batterId:batter.id,pitcherId:pitcher.id,game};}
  pa.pitches++;game.pitchCount++;ps.pitches++;
  const r=random(game);let result;
  if(r<.0015){
@@ -254,7 +254,7 @@ export function advancePitch(game){
     result="IN_PLAY";resolveInPlay(game,batter,pitcher,teamId);completePA(game,batter,teamId,game.lastPAResult==="SF"?"SF":"IN_PLAY");
    }else if(action<.43){result="FOUL";if(pa.strikes<2)pa.strikes++;}
    else{result="STRIKE";pa.strikes++;}
-   }else{result="BALL";pa.balls++;if(game.bases.some(Boolean)&&random(game)<.0018){const catcher=game.lineups[teamOnField(game)].map(id=>game.players[id]).find(p=>p?.position==="C"),caught=catcher&&random(game)<clamp(rating(catcher,"fielding",50)/100,.25,.9);advanceRunnersOnLoosePitch(game,teamId);if(caught)fieldingLine(game,catcher.id).PB++;else ps.WP++;log(game,caught?"捕手捕逸，跑者推進":pitcher.name+" 暴投，跑者推進");}}
+   }else{result="BALL";pa.balls++;if(game.bases.some(Boolean)&&random(game)<.0018){const catcher=game.lineups[teamOnField(game)].map(id=>game.players[id]).find(p=>p?.position==="C"),caught=catcher&&random(game)<clamp(rating(catcher,"fielding",50)/100,.25,.9);advanceRunnersOnLoosePitch(game,teamId,pitcher.id);if(caught)fieldingLine(game,catcher.id).PB++;else ps.WP++;log(game,caught?"捕手捕逸，跑者推進":pitcher.name+" 暴投，跑者推進");}}
   if(game.currentPA&&pa.balls>=4){result="WALK";walk(game,batter,pitcher,teamId);completePA(game,batter,teamId,"BB");}
   else if(game.currentPA&&pa.strikes>=3){result="STRIKEOUT";statsFor(game.batterStats,batter.id).K++;addOut(game,pitcher,"K");completePA(game,batter,teamId,"K");}
   if(game.currentPA&&game.status==="live")trySteal(game,teamId);
