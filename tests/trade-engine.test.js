@@ -59,3 +59,11 @@ test("multi-player trade rejects a package that would exceed the 30-player roste
  state.players.push(...Array.from({length:4},(_,i)=>({...incoming[0],id:"extra-"+i,clubId:"brothers"})));
  assert.throws(()=>executeMultiPlayerTrade(state,{outgoingIds:[own.id],incomingIds:incoming.map(p=>p.id)}),/名單會超過/);
 });
+
+test("trade deadline blocks new deals after matchday ninety and during postseason",()=>{
+ const state=makeState(),own=state.players.find(p=>p.clubId==="brothers"&&!state.lineups.brothers.lineup.includes(p.id)&&!state.lineups.brothers.rotation.includes(p.id)),incoming=state.players.find(p=>p.clubId==="lions");
+ state.matchday=91;
+ assert.throws(()=>executeOneForOneTrade(state,{outgoingId:own.id,incomingId:incoming.id}),/交易截止日/);
+ state.matchday=121;state.phase="postseason";
+ assert.throws(()=>executeOneForOneTrade(state,{outgoingId:own.id,incomingId:incoming.id}),/交易截止日/);
+});
