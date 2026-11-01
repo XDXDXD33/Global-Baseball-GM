@@ -37,7 +37,7 @@ test("AI declines a clearly unbalanced offer",()=>{
 
 test("multi-player package trade supports two-for-one deals and repairs both rosters",()=>{
  const state=makeState(),lineup=state.lineups.brothers;
- const outgoing=state.players.filter(p=>p.clubId==="brothers"&&!lineup.lineup.includes(p.id)&&!lineup.rotation.includes(p.id)).sort((a,b)=>calculateTradeValue(b)-calculateTradeValue(a)).slice(0,2);
+ const outgoing=state.players.filter(p=>p.clubId==="brothers"&&!p.foreign&&!lineup.lineup.includes(p.id)&&!lineup.rotation.includes(p.id)).sort((a,b)=>calculateTradeValue(b)-calculateTradeValue(a)).slice(0,2);
  const incoming=state.players.filter(p=>p.clubId==="lions"&&!p.foreign).sort((a,b)=>calculateTradeValue(a)-calculateTradeValue(b)).slice(0,1);
  const record=executeMultiPlayerTrade(state,{outgoingIds:outgoing.map(p=>p.id),incomingIds:incoming.map(p=>p.id)});
  assert.equal(record.outgoingIds.length,2);
