@@ -55,7 +55,10 @@ export function createLeagueSchedule(season=2026,teamIds=LEAGUE.clubs.map(c=>c.i
 const clonePlayer=p=>({...p,ratings:{...(p.ratings||{})}});
 function statsFor(bucket,id){
  if(!id)return {};
- return bucket[id]||(bucket[id]={PA:0,AB:0,H:0,Singles:0,Doubles:0,Triples:0,HR:0,R:0,RBI:0,BB:0,K:0,HBP:0,SB:0,CS:0,SH:0,SF:0,GDP:0,CI:0,WP:0,PB:0,BK:0,pitches:0,outs:0,ER:0});
+ const defaults={PA:0,AB:0,H:0,Singles:0,Doubles:0,Triples:0,HR:0,R:0,RBI:0,BB:0,K:0,HBP:0,SB:0,CS:0,SH:0,SF:0,GDP:0,CI:0,WP:0,PB:0,BK:0,pitches:0,outs:0,ER:0};
+ const stats=bucket[id]||(bucket[id]={...defaults});
+ for(const [key,value] of Object.entries(defaults))if(!Number.isFinite(Number(stats[key])))stats[key]=value;
+ return stats;
 }
 function advanceRunnersOnLoosePitch(game,teamId,pitcherId){
  const old=[...game.bases];game.bases=[null,null,null];
