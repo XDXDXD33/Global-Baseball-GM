@@ -60,6 +60,7 @@ function render(){
  const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
  if(page==="roster")bindRosterTools(state,persist,render);
  if(page==="history")bindHistoryPage(state,persist,render);
+ if(page==="stars")bindStarMarket(y=>{starSeason=y;render();});
 }
 function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="global-baseball-gm-save.json";a.click();URL.revokeObjectURL(url);}
 $("#new-career-btn").addEventListener("click",setup);
