@@ -83,7 +83,7 @@ function effectivePitchRating(game,pitcher,key){
  const fatigue=Math.max(0,ps.pitches+(game.workload?.[pitcher.id]||0)-limit)*.22;
  return clamp(rating(pitcher,key)-fatigue,10,100);
 }
-function chargeEarnedRun(game,pitcherId,runnerId){if(!game.automaticRunnerIds?.includes(runnerId))statsFor(game.pitcherStats,pitcherId).ER++;}
+function chargeEarnedRun(game,pitcherId,runnerId){const unearned=game.automaticRunnerIds?.includes(runnerId);if(!unearned)statsFor(game.pitcherStats,pitcherId).ER++;else game.automaticRunnerIds=game.automaticRunnerIds.filter(id=>id!==runnerId);}
 function fieldingLine(game,playerId){return game.fieldingStats[playerId]||(game.fieldingStats[playerId]={E:0,PO:0,A:0,DP:0});}
 function recordRun(game,teamId,runnerId){
  game.score[teamId]++;const line=game.lineScore[teamId];
@@ -143,7 +143,7 @@ export function placeCPBLExtraInningRunner(game,teamId){
  return runnerId;
 }
 function nextHalf(game){
- game.outs=0;game.bases=[null,null,null];
+ game.outs=0;game.bases=[null,null,null];game.automaticRunnerIds=[];
  if(game.half==="top"){
   if(game.inning>=9&&game.score[game.fixture.homeId]>game.score[game.fixture.awayId]){finishGame(game,"九局上結束時主隊領先");return;}
   game.half="bottom";
