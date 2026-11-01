@@ -51,7 +51,7 @@
 - [x] One-for-one player trades with AI valuation and roster repair
 - [x] Multi-player trades (up to three players per side)
 - [x] Trade deadline enforcement
-- [ ] AI-initiated trade proposals
+- [x] AI-initiated balanced trade proposals with user accept/decline and deadline expiry
 - [x] AI free-agent signings, roster construction and contract renewal
 - [ ] Coaches, medical staff, advanced scouting reports and draft/prospects
 - [x] Club-level AI budgets, contender/rebuild strategy and lineup optimization
