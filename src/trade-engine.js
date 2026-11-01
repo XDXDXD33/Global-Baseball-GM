@@ -25,6 +25,7 @@ export function executeMultiPlayerTrade(state,{outgoingIds,incomingIds}){
  const outIds=[...new Set((outgoingIds||[]).filter(Boolean))],inIds=[...new Set((incomingIds||[]).filter(Boolean))];
  if(!outIds.length||!inIds.length||outIds.length>3||inIds.length>3)throw new Error("交易雙方各須選擇 1 至 3 名球員");
  if(state.currentGame?.status==="live")throw new Error("比賽進行中不能進行球員交易");
+ if(state.phase==="postseason"||Number(state.matchday||1)>90)throw new Error("球季交易截止日已過，下一個球季才會重新開放交易");
  const outgoing=outIds.map(id=>state.players.find(p=>p.id===id)),incoming=inIds.map(id=>state.players.find(p=>p.id===id));
  if(outgoing.some(p=>!p||p.clubId!==state.clubId))throw new Error("送出的球員必須全部來自本隊");
  if(incoming.some(p=>!p?.clubId||p.clubId===state.clubId))throw new Error("換入的球員必須來自其他球隊");
