@@ -46,7 +46,6 @@ test("expired user contract enters free agency while AI contracts auto-renew",()
 });
 
 test("initial contract generation skips released and retired players",()=>{
- const {initializeContracts}=await import("../src/contract-engine.js");
  const players=[{id:"active",clubId:"brothers",age:25},{id:"free",clubId:null,age:25},{id:"retired",clubId:null,retired:true,age:40}];
  const contracts=initializeContracts(players,2026);
  assert.deepEqual(Object.keys(contracts),["active"]);
