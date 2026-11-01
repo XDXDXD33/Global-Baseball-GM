@@ -87,24 +87,20 @@ export function releasePlayer(state,playerId){
 }
 export function advanceContractYear(state){
  const expired=[];
- for(const p of [...state.players].filter(x=>x.clubId)){
+ for(const p of [...state.players].filter(x=>x.clubId&&!x.retired)){
   const c=state.contracts?.[p.id]||{salary:estimatePlayerSalary(p),yearsRemaining:1};
   const remaining=Math.max(0,(Number(c.yearsRemaining)||1)-1);
   if(remaining>0){state.contracts[p.id]={...c,yearsRemaining:remaining,expirySeason:state.season+remaining-1};continue;}
-  if(p.clubId===state.clubId){
-   expired.push(p);
-   state.players=state.players.map(x=>x.id===p.id?{...x,clubId:null,contractStatus:"free-agent"}:x);
-   delete state.contracts[p.id];
-   state.lineups[state.clubId].lineup=(state.lineups[state.clubId].lineup||[]).filter(id=>id!==p.id);
-   state.lineups[state.clubId].rotation=(state.lineups[state.clubId].rotation||[]).filter(id=>id!==p.id);
-   state.lineups[state.clubId].bullpen=(state.lineups[state.clubId].bullpen||[]).filter(id=>id!==p.id);
-   state.freeAgents??=[];state.freeAgents.push({...p,clubId:null,contractStatus:"free-agent"});
-  }else{
-   const salary=Math.round((Number(c.salary)||estimatePlayerSalary(p))*1.03);
-   state.contracts[p.id]={salary,yearsRemaining:2,expirySeason:state.season+1,status:"active",signedSeason:state.season+1,signingBonus:0};
-  }
+  expired.push(p);
+  state.players=state.players.map(x=>x.id===p.id?{...x,clubId:null,contractStatus:"free-agent"}:x);
+  delete state.contracts[p.id];
+  const cfg=state.lineups?.[p.clubId];
+  if(cfg)for(const key of ["lineup","rotation","bullpen"])cfg[key]=(cfg[key]||[]).filter(id=>id!==p.id);
+  state.freeAgents??=[];
+  if(!state.freeAgents.some(x=>x.id===p.id))state.freeAgents.push({...p,clubId:null,contractStatus:"free-agent"});
  }
- repairLineup(state,state.clubId);
- state.contractHistory??=[];state.contractHistory.push(...expired.map(p=>({type:"expiry",playerId:p.id,playerName:p.name,season:state.season})));
+ for(const teamId of Object.keys(state.lineups||{}))repairLineup(state,teamId);
+ state.contractHistory??=[];
+ state.contractHistory.push(...expired.map(p=>({type:"expiry",playerId:p.id,playerName:p.name,teamId:p.clubId,season:state.season})));
  return expired;
 }
