@@ -63,7 +63,7 @@ export function createGame({fixture,players,lineups,seed=1,tactics={}}){
  const lineupFor=id=>lineups[id]?.lineup?.filter(pid=>byId[pid]?.clubId===id)||players.filter(p=>p.clubId===id&&!["SP","RP","P"].includes(p.position)).slice(0,9).map(p=>p.id);
  if(!home||!away)throw new Error("兩隊都需要至少一名先發投手");
  for(const id of [fixture.homeId,fixture.awayId])if(lineupFor(id).length<9)throw new Error("兩隊都需要至少九名可用打者");
- return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[],[fixture.awayId]:[]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
+ return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[0],[fixture.awayId]:[0]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
 }
 function random(game){game.rngState=(Math.imul(game.rngState,1664525)+1013904223)>>>0;return game.rngState/4294967296;}
 function teamAtBat(game){return game.half==="top"?game.fixture.awayId:game.fixture.homeId;}
@@ -72,7 +72,7 @@ function currentBatter(game){const id=teamAtBat(game),lineup=game.lineups[id];re
 function pitcherFor(game){return game.players[game.pitcherId[teamOnField(game)]];}
 function statsFor(bucket,id){return bucket[id]||(bucket[id]={PA:0,AB:0,H:0,Singles:0,Doubles:0,Triples:0,HR:0,R:0,RBI:0,BB:0,K:0,HBP:0,SB:0,CS:0,pitches:0,outs:0,ER:0});}
 function log(game,message){game.lastEvent=message;game.log.push({inning:game.inning,half:game.half,text:message,outs:game.outs,score:{...game.score}});if(game.log.length>500)game.log.shift();}
-function addRun(game,teamId,batterId,pitcherId,earned=true){game.score[teamId]++;const batter=statsFor(game.batterStats,batterId);batter.RBI++;statsFor(game.batterStats,game.bases[2]).R++;const pitcher=statsFor(game.pitcherStats,pitcherId);if(earned)pitcher.ER++;}
+function recordRun(game,teamId,runnerId){game.score[teamId]++;const line=game.lineScore[teamId];while(line.length<game.inning)line.push(0);line[game.inning-1]++;if(runnerId)statsFor(game.batterStats,runnerId).R++;}\nfunction addRun(game,teamId,batterId,pitcherId,earned=true){const runner=game.bases[2];recordRun(game,teamId,runner);statsFor(game.batterStats,batterId).RBI++;if(earned)statsFor(game.pitcherStats,pitcherId).ER++;}
 function walk(game,batter,pitcher,team){
  const b=game.bases;
  if(b[0]){if(b[1]){if(b[2])addRun(game,team,batter.id,pitcher.id);b[2]=b[1];}b[1]=b[0];}
@@ -82,9 +82,9 @@ function walk(game,batter,pitcher,team){
 function hit(game,batter,pitcher,team,type){
  const old=[...game.bases],bs=statsFor(game.batterStats,batter.id),ps=statsFor(game.pitcherStats,pitcher.id);
  bs.H++;ps.H++;
- if(type==="HR"){bs.HR++;for(const runner of old)if(runner){game.score[team]++;statsFor(game.batterStats,runner).R++;bs.RBI++;ps.ER++;}game.score[team]++;bs.R++;bs.RBI++;ps.ER++;game.bases=[null,null,null];return;}
- if(type==="3B"){bs.Triples++;for(const runner of old)if(runner){game.score[team]++;statsFor(game.batterStats,runner).R++;bs.RBI++;ps.ER++;}game.bases=[null,null,batter.id];return;}
- if(type==="2B"){bs.Doubles++;for(const runner of [old[2],old[1]])if(runner){game.score[team]++;statsFor(game.batterStats,runner).R++;bs.RBI++;ps.ER++;}game.bases=[null,old[0],batter.id];return;}
+ if(type==="HR"){bs.HR++;for(const runner of old)if(runner){recordRun(game,team,runner);bs.RBI++;ps.ER++;}recordRun(game,team,batter.id);bs.RBI++;ps.ER++;game.bases=[null,null,null];return;}
+ if(type==="3B"){bs.Triples++;for(const runner of old)if(runner){recordRun(game,team,runner);bs.RBI++;ps.ER++;}game.bases=[null,null,batter.id];return;}
+ if(type==="2B"){bs.Doubles++;for(const runner of [old[2],old[1]])if(runner){recordRun(game,team,runner);bs.RBI++;ps.ER++;}game.bases=[null,batter.id,old[0]];return;}
  bs.Singles++;
  if(old[2]){game.score[team]++;statsFor(game.batterStats,old[2]).R++;bs.RBI++;ps.ER++;}
  game.bases=[old[0]?null:null,old[0]?old[0]:null,batter.id];
@@ -123,17 +123,17 @@ function resolveInPlay(game,batter,pitcher,team){
   hit(game,batter,pitcher,team,r<hr?"HR":r<hr+triple?"3B":r<hr+triple+double?"2B":"1B");
   log(game,batter.name+" 擊出"+({HR:"全壘打",3B:"三壘安打",2B:"二壘安打","1B":"一壘安打"}[game.batterStats[batter.id].HR?"HR":game.batterStats[batter.id].Triples?"3B":game.batterStats[batter.id].Doubles?"2B":"1B"]));
  }else if(random(game)<.018+(100-rating({ratings:{fielding:50}},"fielding") )*.0001){
-  game.bases[0]=batter.id;statsFor(game.batterStats,batter.id).AB++;log(game,batter.name+" 上壘，守備發生失誤");
+  game.bases[0]=batter.id;log(game,batter.name+" 上壘，守備發生失誤");
  }else{
   const fly=random(game)<.45;
-  if(fly&&game.bases[2]&&game.outs<2){const runner=game.bases[2];game.bases[2]=null;game.score[team]++;statsFor(game.batterStats,runner).R++;statsFor(game.batterStats,batter.id).RBI++;statsFor(game.pitcherStats,pitcher.id).ER++;addOut(game,batter,pitcher,"SF");log(game,batter.name+" 高飛犧牲打，三壘跑者得分");}
+  if(fly&&game.bases[2]&&game.outs<2){const runner=game.bases[2];game.bases[2]=null;recordRun(game,team,runner);statsFor(game.batterStats,batter.id).RBI++;statsFor(game.pitcherStats,pitcher.id).ER++;game.lastPAResult="SF";addOut(game,batter,pitcher,"SF");log(game,batter.name+" 高飛犧牲打，三壘跑者得分");}
   else{const dp=!fly&&game.bases[0]&&game.outs<2&&random(game)<.42;addOut(game,batter,pitcher,dp?"DP":"OUT");log(game,batter.name+(dp?" 擊出雙殺打":fly?" 擊出飛球出局":" 擊出滾地球出局"));}
  }
  if(game.half==="bottom"&&game.inning>=9&&game.score[game.fixture.homeId]>game.score[game.fixture.awayId]&&game.status==="live")finishGame(game,"再見得分");
 }
 function completePA(game,batter,pitcher,team,kind){
  const bs=statsFor(game.batterStats,batter.id);bs.PA++;
- if(kind==="BB"||kind==="HBP"){}else if(kind!=="SF")bs.AB++;
+ if(kind==="BB"||kind==="HBP"){}else if(kind!=="SF"&&game.lastPAResult!=="SF")bs.AB++;game.lastPAResult=null;
  game.battingIndex[team]=(game.battingIndex[team]+1)%game.lineups[team].length;
  game.currentPA=null;
  if(kind==="BB")log(game,batter.name+" 選到四壞保送");
@@ -161,7 +161,7 @@ export function advancePitch(game){
   if(game.currentPA&&pa.balls>=4){result="WALK";walk(game,batter,pitcher,team);completePA(game,batter,pitcher,team,"BB");}
   else if(game.currentPA&&pa.strikes>=3){result="STRIKEOUT";addOut(game,batter,pitcher,"K");completePA(game,batter,pitcher,team,"K");}
  }
- const count=game.currentPA?game.currentPA.balls+"-"+game.currentPA.strikes:"";
+ if(game.half==="bottom"&&game.inning>=9&&game.score[game.fixture.homeId]>game.score[game.fixture.awayId]&&game.status==="live")finishGame(game,"再見得分");\n const count=game.currentPA?game.currentPA.balls+"-"+game.currentPA.strikes:"";
  const label={HBP:"觸身球",IN_PLAY:"擊球進場",FOUL:"界外球",STRIKE:"好球",BALL:"壞球",WALK:"四壞保送",STRIKEOUT:"三振"}[result]||result;
  log(game,"第 "+pa.pitches+" 球："+label+(count?"（"+count+"）":""));
  return {done:game.status!=="live"||!game.currentPA,event:label,batterId:batter.id,pitcherId:pitcher.id,count,game};
@@ -174,13 +174,13 @@ export function simulateGame(game,maxPitches=2600){
  if(game.status==="live")finishGame(game,"模擬安全上限");
  return game;
 }
-export function changePitcher(game,teamId,pitcherId){
+export function substituteBatter(game,teamId,outPlayerId,newPlayerId){if(game.status!=="live")throw new Error("比賽已結束");const lineup=game.lineups[teamId],idx=lineup.indexOf(outPlayerId),p=game.players[newPlayerId];if(idx<0||!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position))throw new Error("代打必須是本隊未上場的野手");if(lineup.includes(newPlayerId))throw new Error("該球員已在打序中");lineup[idx]=newPlayerId;log(game,"代打："+p.name);return game;}\nexport function changePitcher(game,teamId,pitcherId){
  if(game.status!=="live")throw new Error("比賽已結束");
  const p=game.players[pitcherId];if(!p||p.clubId!==teamId||!["SP","RP","P"].includes(p.position))throw new Error("只能更換為本隊可用投手");
  if(game.pitcherId[teamId]===pitcherId)throw new Error("該投手已在場上");
  game.pitcherId[teamId]=pitcherId;log(game,"投手更換："+p.name);return game;
 }
-export function calculateStandings(schedule,teamIds=LEAGUE.clubs.map(c=>c.id)){
+export function createFreeAgentPool(seed=2026){const random=rng(hash("free-agents-"+seed)),positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","RP","RP","RP","RP","RP","RP"];return positions.map((pos,i)=>{const p=makePlayer("fa-"+seed+"-"+String(i+1).padStart(2,"0"),null,pos,i,random);p.name="自由球員 "+String(i+1).padStart(2,"0");p.foreign=i%4===0;p.contractStatus="free-agent";return p;});}\nexport function calculateStandings(schedule,teamIds=LEAGUE.clubs.map(c=>c.id)){
  return teamIds.map(teamId=>{
   const games=schedule.filter(g=>g.status==="final"&&(g.homeId===teamId||g.awayId===teamId));
   const wins=games.filter(g=>g.winnerId===teamId).length,losses=games.filter(g=>g.winnerId&&g.winnerId!==teamId).length,ties=games.length-wins-losses;
