@@ -47,13 +47,14 @@
 - [x] Contract renewal negotiation with salary and term offers
 - [x] Free-agent salary/term offers, roster and foreign-player limits, signing bonus
 - [x] Player release with remaining-contract compensation
-- [x] Contract expiry at season rollover and AI contract renewal
+- [x] Contract expiry at season rollover with AI-specific offseason renewal evaluation
 - [x] One-for-one player trades with AI valuation and roster repair
 - [x] Multi-player trades (up to three players per side)
-- [x] Trade deadline enforcement\n- [ ] AI-initiated trade proposals
-- [ ] AI free-agent bidding and roster construction
+- [x] Trade deadline enforcement
+- [ ] AI-initiated trade proposals
+- [x] AI free-agent signings, roster construction and contract renewal
 - [ ] Coaches, medical staff, advanced scouting reports and draft/prospects
-- [ ] Club-level AI strategy and long-term rebuilding/contending logic
+- [x] Club-level AI budgets, contender/rebuild strategy and lineup optimization
 
 ## Phase 5 - long-term careers
 - [x] Age-aware development and decline
