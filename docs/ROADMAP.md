@@ -37,7 +37,8 @@
 - [x] Gate revenue, attendance, monthly payroll, sponsorship and maintenance settlement
 - [x] Monthly player development with age curve and user-selected training focus
 - [ ] Contract negotiation, extensions and release compensation
-- [x] One-for-one player trades with AI valuation, lineup repair and foreign-player cap checks\n- [ ] Multi-player trades, AI roster construction and trade-deadline logic
+- [x] One-for-one player trades with AI valuation, lineup repair and foreign-player cap checks
+- [ ] Multi-player trades, AI roster construction and trade-deadline logic
 - [ ] Coaches, medical staff, scouting reports and draft/prospects
 - [ ] Club-level AI strategy and multi-year roster planning
 
