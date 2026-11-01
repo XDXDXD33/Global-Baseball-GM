@@ -3,6 +3,7 @@ import { LEAGUE } from "./data.js";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const positions=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
 const posName={C:"捕手", "1B":"一壘", "2B":"二壘", "3B":"三壘",SS:"游擊",LF:"左外野",CF:"中外野",RF:"右外野",DH:"指定打擊",SP:"先發投手",RP:"後援投手",OF:"外野"};
+const canPlay=(p,pos)=>({C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"],DH:["C","1B","2B","3B","SS","LF","CF","RF","OF","DH"]}[pos]||[]).includes(p.position);
 const select=(name,items,value,empty=false)=>`<select name="${name}">${empty?'<option value="">未指定</option>':""}${items.map(p=>`<option value="${esc(p.id)}" ${p.id===value?"selected":""}>${esc(p.name)} · ${p.position}</option>`).join("")}</select>`;
 export function renderLineupPage(state){
  const clubId=state.clubId,roster=state.players.filter(p=>p.clubId===clubId),hitters=roster.filter(p=>!["SP","RP","P"].includes(p.position)),pitchers=roster.filter(p=>["SP","RP","P"].includes(p.position));
