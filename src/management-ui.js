@@ -1,0 +1,46 @@
+import { estimatePlayerAbility, estimatePlayerSalary, countForeignPlayers } from "./rules.js";
+import { LEAGUE } from "./data.js";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const positions=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
+const posName={C:"捕手", "1B":"一壘", "2B":"二壘", "3B":"三壘",SS:"游擊",LF:"左外野",CF:"中外野",RF:"右外野",DH:"指定打擊",SP:"先發投手",RP:"後援投手",OF:"外野"};
+const select=(name,items,value,empty=false)=>`<select name="${name}">${empty?'<option value="">未指定</option>':""}${items.map(p=>`<option value="${esc(p.id)}" ${p.id===value?"selected":""}>${esc(p.name)} · ${p.position}</option>`).join("")}</select>`;
+export function renderLineupPage(state){
+ const clubId=state.clubId,roster=state.players.filter(p=>p.clubId===clubId),hitters=roster.filter(p=>!["SP","RP","P"].includes(p.position)),pitchers=roster.filter(p=>["SP","RP","P"].includes(p.position));
+ const cfg=state.lineups?.[clubId]||{lineup:[],rotation:[],bullpen:[]},batting=cfg.lineup||[],rotation=cfg.rotation||[];
+ return `<section class="panel"><div class="panel-heading-row"><div><h3>先發打序與守位</h3><p class="field-help">每場比賽會依照這份打序輪替。先發九人不可重複，替補球員不會自動進入打序。</p></div><span class="tag real">${hitters.length} 位野手</span></div>
+ <form id="lineup-form"><div class="lineup-grid">${positions.map((pos,i)=>`<label><span>${i+1} 棒 · ${posName[pos]}</span>${select("bat"+i,hitters,batting[i]||"")}</label>`).join("")}</div>
+ <h3 class="subheading">先發輪值</h3><div class="lineup-grid rotation-grid">${[0,1,2,3,4].map(i=>`<label><span>第 ${i+1} 號先發</span>${select("sp"+i,pitchers.filter(p=>p.position==="SP"),rotation[i]||"")}</label>`).join("")}</div>
+ <h3 class="subheading">比賽策略</h3><div class="lineup-grid tactics-grid">
+ <label><span>打擊策略</span><select name="aggressiveHitting"><option value="normal" ${state.tactics?.[clubId]?.aggressiveHitting!=="yes"?"selected":""}>平衡攻擊</option><option value="yes" ${state.tactics?.[clubId]?.aggressiveHitting==="yes"?"selected":""}>積極攻擊</option></select></label>
+ <label><span>盜壘策略</span><select name="stealAggression"><option value="normal">視情況嘗試</option><option value="aggressive">積極跑壘</option><option value="conservative">保守跑壘</option></select></label>
+ <label><span>投手調度</span><select name="bullpenHook"><option value="normal">一般調度</option><option value="quick">較早啟用牛棚</option><option value="long">延長先發投手</option></select></label>
+ <label><span>守備策略</span><select name="defenseStyle"><option value="normal">標準守備</option><option value="infieldIn">內野趨前</option><option value="deep">外野後退</option></select></label>
+ </div><button class="button button-primary" type="submit">儲存陣容與策略</button><p id="lineup-result" class="field-help" aria-live="polite"></p></form></section>
+ <section class="panel"><h3>牛棚名單</h3><div class="table-wrap"><table><thead><tr><th>投手</th><th>守位</th><th>年齡</th><th>能力估值</th></tr></thead><tbody>${pitchers.filter(p=>p.position!=="SP"||!rotation.includes(p.id)).map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position==="SP"?"先發／長中繼":"後援"}</td><td>${p.age}</td><td>${Math.round(estimatePlayerAbility(p))}</td></tr>`).join("")}</tbody></table></div></section>`;
+}
+export function bindLineupPage(state,persist,render){
+ const form=document.querySelector("#lineup-form");if(!form)return;
+ form.addEventListener("submit",e=>{
+  e.preventDefault();const d=new FormData(form),lineup=positions.map((_,i)=>String(d.get("bat"+i)||"")),rotation=[0,1,2,3,4].map(i=>String(d.get("sp"+i)||""));
+  if(lineup.some(x=>!x)||new Set(lineup).size!==9){document.querySelector("#lineup-result").textContent="打序必須填滿九個位置，而且不能重複球員。";return;}
+  if(rotation.some(x=>!x)||new Set(rotation).size!==5){document.querySelector("#lineup-result").textContent="必須指定五名不同的先發投手。";return;}
+  const validHitters=lineup.every(id=>state.players.some(p=>p.id===id&&p.clubId===state.clubId&&!["SP","RP","P"].includes(p.position)));
+  const validPitchers=rotation.every(id=>state.players.some(p=>p.id===id&&p.clubId===state.clubId&&p.position==="SP"));
+  if(!validHitters||!validPitchers){document.querySelector("#lineup-result").textContent="陣容包含不屬於本隊或守位不符的球員。";return;}
+  state.lineups[state.clubId]={...state.lineups[state.clubId],lineup,rotation,bullpen:state.players.filter(p=>p.clubId===state.clubId&&["RP","P"].includes(p.position)).map(p=>p.id)};
+  state.tactics[state.clubId]={aggressiveHitting:d.get("aggressiveHitting"),stealAggression:d.get("stealAggression"),bullpenHook:d.get("bullpenHook"),defenseStyle:d.get("defenseStyle")};
+  persist();render();
+ });
+}
+export function renderOperationsPage(state){
+ const roster=state.players.filter(p=>p.clubId===state.clubId),foreign=countForeignPlayers(roster),payroll=roster.reduce((n,p)=>n+(state.contracts?.[p.id]?.salary||estimatePlayerSalary(p)),0);
+ const market=state.freeAgents||[];
+ return `<section class="panel"><div class="grid"><div class="stat-card"><small>可用資金</small><strong>$${(state.budget/1e6).toFixed(1)}M</strong><em>球團現金</em></div><div class="stat-card"><small>預估年薪總額</small><strong>$${(payroll/1e6).toFixed(1)}M</strong><em>${roster.length} 位球員</em></div><div class="stat-card"><small>洋將登錄</small><strong>${foreign} / ${state.foreignLimit}</strong><em>依自訂名額規則</em></div><div class="stat-card"><small>球迷基數</small><strong>${state.fanbase.toLocaleString()}</strong><em>影響主場票房</em></div></div></section>
+ <section class="panel"><h3>球場與球團營運</h3><form id="finance-form" class="finance-form"><label>主場平均票價（元）<input name="ticketPrice" type="number" min="100" max="2000" step="50" value="${state.ticketPrice||350}"></label><div class="setting-row"><div><span>訓練設施等級</span><small>提升球員成長效率，後續會接入月度訓練結算</small></div><b>Lv.${state.trainingLevel||1}</b><button type="button" class="button button-quiet" data-upgrade="training">升級（$8M）</button></div><div class="setting-row"><div><span>球探設施等級</span><small>提升自由球員與新秀資料品質，後續擴充球探報告</small></div><b>Lv.${state.scoutingLevel||1}</b><button type="button" class="button button-quiet" data-upgrade="scouting">升級（$6M）</button></div><button class="button button-primary" type="submit">更新營運設定</button><p class="field-help">每十個比賽日結算一次薪資、球場維護與贊助收入；主場門票收入會在比賽結束後入帳。</p></form></section>
+ <section class="panel"><div class="panel-heading-row"><div><h3>自由球員市場</h3><p class="field-help">本市場先使用明確標示的虛擬球員，避免將未查證的真實球員當成自由球員。</p></div><span class="tag real">${market.length} 位待簽約</span></div><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>本土／洋將</th><th>能力估值</th><th>估計年薪</th><th>簽約</th></tr></thead><tbody>${market.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td>${p.foreign?"洋將":"本土"}</td><td>${Math.round(estimatePlayerAbility(p))}</td><td>$${Math.round(estimatePlayerSalary(p)).toLocaleString()}</td><td><button class="button button-quiet button-small" data-sign-free-agent="${esc(p.id)}">簽下</button></td></tr>`).join("")||'<tr><td colspan="7">目前沒有自由球員</td></tr>'}</tbody></table></div><p id="market-result" class="field-help" aria-live="polite"></p></section>`;
+}
+export function bindOperationsPage(state,persist,render){
+ document.querySelector("#finance-form")?.addEventListener("submit",e=>{e.preventDefault();const price=Number(new FormData(e.currentTarget).get("ticketPrice"));if(!Number.isFinite(price)||price<100||price>2000){alert("票價必須介於 100 至 2,000 元。");return;}state.ticketPrice=price;persist();render();});
+ document.querySelectorAll("[data-upgrade]").forEach(button=>button.addEventListener("click",()=>{const type=button.dataset.upgrade,cost=type==="training"?8000000:6000000;if(state.budget<cost){alert("可用資金不足，無法升級。");return;}state.budget-=cost;if(type==="training")state.trainingLevel=(state.trainingLevel||1)+1;else state.scoutingLevel=(state.scoutingLevel||1)+1;persist();render();}));
+ document.querySelectorAll("[data-sign-free-agent]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.signFreeAgent,p=state.freeAgents.find(x=>x.id===id);if(!p)return;const roster=state.players.filter(x=>x.clubId===state.clubId);if(roster.length>=30){alert("本隊名單已達 30 人上限，請先釋出球員。");return;}if(p.foreign&&countForeignPlayers(roster)>=state.foreignLimit){alert("洋將名額已滿，無法簽下這名球員。");return;}const salary=estimatePlayerSalary(p),bonus=Math.round(salary*.2);if(state.budget<bonus){alert("資金不足，無法支付簽約金。");return;}const signed={...p,clubId:state.clubId,source:"遊戲虛擬自由球員市場",confidence:1};state.players.push(signed);state.contracts[id]={salary,years:2};state.budget-=bonus;state.freeAgents=state.freeAgents.filter(x=>x.id!==id);persist();render();}));
+}
