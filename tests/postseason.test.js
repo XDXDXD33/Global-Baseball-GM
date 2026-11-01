@@ -47,7 +47,7 @@ test("championship completes after a team reaches four wins",()=>{
 });
 test("CPBL home-field patterns are applied to a full five-game and seven-game series",()=>{
  const p=createPostseasonState(same,2026),homes=[];
- for(let n=0;n<5;n++){const f=getNextPostseasonFixture(p,121+n);homes.push(f.homeId);const winnerId=n%2===0?"dragons":"brothers";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
+ for(let n=0;n<5;n++){const f=getNextPostseasonFixture(p,121+n);homes.push(f.homeId);const winnerId=n%2===0?"dragons":"lions";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
  assert.deepEqual(homes,["brothers","brothers","dragons","dragons","brothers"]);
  const finalHomes=[];
  for(let n=0;n<6;n++){const f=getNextPostseasonFixture(p,126+n);finalHomes.push(f.homeId);const winnerId=n%2===0?"dragons":"brothers";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
