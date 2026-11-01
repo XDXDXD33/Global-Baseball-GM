@@ -14,8 +14,12 @@ Browser-based baseball GM simulation focused on CPBL, designed for future global
 - JSON save export.
 - 26-player fictional demo rosters for all six clubs, a 120-game-per-team schedule, live pitch-by-pitch play and same-engine quick simulation.
 - Player-controlled batting order, starting rotation, base-running/attack strategy, pinch hitters and pitching changes.
-- Front-office controls for ticket pricing, facility upgrades, free-agent signing, one-for-one player trades with AI valuation and foreign-player checks, payroll, gate revenue and monthly finance settlement.
-- Monthly player development with selected training focus, age-aware growth/decline, and cross-game pitcher workload/fatigue.\n- CPBL rule-based extra-inning runners, injury availability, defensive alignment and fielding box scores.\n- Official CPBL half-season postseason qualification, tiebreaker, series advantages and home-field rules.\n- Multi-year player contracts, salary/term negotiation, free-agent offers, release compensation, contract expiry and player retirement.
+- Front-office controls for ticket pricing, facility upgrades, free-agent signing, one-for-one and multi-player trades with AI valuation, payroll, gate revenue and monthly finance settlement.
+- Autonomous rival-club management: five AI clubs maintain separate finances, evaluate contender/rebuild strategy, renew selected contracts, sign free agents to fill roster gaps, release weak surplus players, optimize lineups and rotations, and publish transaction reports.
+- Monthly player development with selected training focus, age-aware growth/decline, and cross-game pitcher workload/fatigue.
+- CPBL rule-based extra-inning runners, injury availability, defensive alignment and fielding box scores.
+- Official CPBL half-season postseason qualification, tiebreaker, series advantages and home-field rules.
+- Multi-year player contracts, salary/term negotiation, free-agent offers, release compensation, contract expiry and player retirement.
 
 ## Historical data source
 The initial compatible source is [CPBL Opendata](https://github.com/ldkrsi/cpbl-opendata). Its repository lists annual CPBL batting, pitching and fielding CSVs from 1990 through 2024 and includes an MIT license. The curator documents ID changes after the 2021 official-site migration and other historical data caveats. The MIT repository license does not automatically resolve rights in underlying CPBL league data, so third-party CSV files are not bundled with this game.
@@ -24,7 +28,9 @@ To import: open the **歷史資料庫** page and choose **線上匯入 1990–20
 
 The current audited source inventory ends at 2024. 2025 and 2026 records must be sourced and verified separately.
 
-The **經典球星** page initially highlights verified CPBL imports across eras, including Manny Ramirez (2013). It distinguishes confirmed CPBL appearances from unlinked records and does not assign unsupported ability ratings. See each player card for its evidence source.\n\n## Run locally
+The **經典球星** page initially highlights verified CPBL imports across eras, including Manny Ramirez (2013). It distinguishes confirmed CPBL appearances from unlinked records and does not assign unsupported ability ratings. See each player card for its evidence source.
+
+## Run locally
 Open `index.html` or serve this directory with a static HTTP server. GitHub Pages requires Pages source = GitHub Actions.
 
 ## Tests
