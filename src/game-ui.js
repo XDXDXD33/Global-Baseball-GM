@@ -1,6 +1,7 @@
 import { LEAGUE } from "./data.js";
 import { createGame,advancePitch,advancePlateAppearance,simulateGame,changePitcher,substituteBatter,applyGameResult,calculateStandings,gameSituation,setGameCommand,attemptStealBase,executeSacrificeBunt,issueIntentionalWalk } from "./game-engine.js";
 import { estimatePlayerSalary } from "./rules.js";
+import { developPlayers } from "./player-development.js";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const club=id=>LEAGUE.clubs.find(c=>c.id===id);
 const money=n=>"$"+Math.round(n).toLocaleString();
@@ -43,6 +44,8 @@ export function renderGamePage(state){
  <section class="panel"><h3>最近賽果</h3><div class="table-wrap"><table><thead><tr><th>比賽日</th><th>客隊</th><th>比數</th><th>主隊</th></tr></thead><tbody>${state.schedule.filter(g=>g.status==="final"&&(g.homeId===state.clubId||g.awayId===state.clubId)).slice(-8).reverse().map(g=>`<tr><td>${g.matchday}</td><td>${esc(club(g.awayId).short)}</td><td>${g.awayScore} : ${g.homeScore}</td><td>${esc(club(g.homeId).short)}</td></tr>`).join("")||'<tr><td colspan="4">尚無比賽紀錄</td></tr>'}</tbody></table></div></section>${state.gameArchive?.length?`<section class="panel"><h3>最近一場完整比賽紀錄</h3><p class="field-help">${esc(club(state.gameArchive.at(-1).fixture.awayId).name)} ${state.gameArchive.at(-1).fixture.awayScore} : ${state.gameArchive.at(-1).fixture.homeScore} ${esc(club(state.gameArchive.at(-1).fixture.homeId).name)}</p><div class="table-wrap"><table><thead><tr><th>球員</th><th>PA</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th></tr></thead><tbody>${Object.entries(state.gameArchive.at(-1).batters).filter(([,x])=>x.PA>0).slice(0,18).map(([id,x])=>`<tr><td>${esc(state.players.find(p=>p.id===id)?.name||id)}</td><td>${x.PA}</td><td>${x.AB}</td><td>${x.H}</td><td>${x.HR}</td><td>${x.RBI}</td></tr>`).join("")}</tbody></table></div></section>`:""}`;
 }
 function recordStats(state,game){
+ state.pitcherWorkload??={};
+ for(const [id,stats] of Object.entries(game.pitcherStats))state.pitcherWorkload[id]=Math.min(220,Math.round((state.pitcherWorkload[id]||0)+stats.pitches));
  for(const [id,stats] of Object.entries(game.batterStats)){const target=state.seasonStats.batters[id]||(state.seasonStats.batters[id]={PA:0,AB:0,H:0,HR:0,RBI:0,BB:0,K:0,R:0,SB:0,CS:0,SH:0,SF:0,GDP:0,HBP:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
  for(const [id,stats] of Object.entries(game.pitcherStats)){const target=state.seasonStats.pitchers[id]||(state.seasonStats.pitchers[id]={outs:0,ER:0,H:0,BB:0,K:0,pitches:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
 }
@@ -57,6 +60,8 @@ function settleEconomy(state,fixture,game){
  }
 }
 function finishMonth(state){
+ developPlayers(state);
+ state.month=Math.min(12,Math.floor((state.matchday-1)/10)+1);
  const roster=state.players.filter(p=>p.clubId===state.clubId),payroll=roster.reduce((n,p)=>n+(state.contracts?.[p.id]?.salary||estimatePlayerSalary(p)),0);
  const sponsor=3500000+(state.fanbase*30);
  const maintenance=1800000+(state.trainingLevel||1)*250000+(state.scoutingLevel||1)*180000;
