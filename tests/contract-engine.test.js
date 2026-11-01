@@ -42,7 +42,9 @@ test("expired user and AI contracts both enter free agency for offseason evaluat
  const expired=advanceContractYear(s);
  assert.ok(expired.some(x=>x.id===user.id));
  assert.equal(s.players.find(x=>x.id===user.id).clubId,null);
- assert.equal(s.players.find(x=>x.id===ai.id).clubId,null);\n assert.ok(s.freeAgents.some(x=>x.id===ai.id));\n assert.equal(s.contracts[ai.id],undefined);
+ assert.equal(s.players.find(x=>x.id===ai.id).clubId,null);
+ assert.ok(s.freeAgents.some(x=>x.id===ai.id));
+ assert.equal(s.contracts[ai.id],undefined);
 });
 
 test("initial contract generation skips released and retired players",()=>{
