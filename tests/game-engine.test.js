@@ -24,7 +24,10 @@ test("full game resolves, records box score and standings",()=>{
  const g=simulateGame(createGame({fixture,players,lineups,seed:12345}));
  assert.equal(g.status,"final");assert.ok(g.inning>=9);assert.ok(g.pitchCount>0);
  const f=applyGameResult(fixture,g);assert.equal(f.status,"final");assert.equal(typeof f.homeScore,"number");
- const s=calculateStandings([f],["brothers","lions"]);assert.equal(s.reduce((n,x)=>n+x.games,0),2);\n assert.equal(g.lineScore.brothers.reduce((n,x)=>n+x,0),g.score.brothers);\n assert.equal(g.lineScore.lions.reduce((n,x)=>n+x,0),g.score.lions);\n for(const x of Object.values(g.batterStats))assert.ok(x.AB<=x.PA);
+ const s=calculateStandings([f],["brothers","lions"]);assert.equal(s.reduce((n,x)=>n+x.games,0),2);
+ assert.equal(g.lineScore.brothers.reduce((n,x)=>n+x,0),g.score.brothers);
+ assert.equal(g.lineScore.lions.reduce((n,x)=>n+x,0),g.score.lions);
+ for(const x of Object.values(g.batterStats))assert.ok(x.AB<=x.PA);
 });
 test("bullpen can replace the active pitcher",()=>{
  const fixture={id:"test2",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
