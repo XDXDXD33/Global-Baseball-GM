@@ -53,3 +53,17 @@ test("CPBL home-field patterns are applied to a full five-game and seven-game se
  for(let n=0;n<6;n++){const f=getNextPostseasonFixture(p,126+n);finalHomes.push(f.homeId);const winnerId=n%2===0?"dragons":"brothers";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
  assert.deepEqual(finalHomes,["brothers","brothers","dragons","dragons","brothers","brothers"]);
 });
+
+test("equal annual winning percentage between half champions triggers a one-game tiebreaker",()=>{
+ const tied={firstHalf:[{teamId:"brothers",wins:39,winPct:.65}],secondHalf:[{teamId:"lions",wins:39,winPct:.65}],overall};
+ const schedule=[{status:"final",homeId:"lions",awayId:"brothers",homeScore:5,awayScore:2},{status:"final",homeId:"brothers",awayId:"lions",homeScore:1,awayScore:4},{status:"final",homeId:"lions",awayId:"brothers",homeScore:3,awayScore:1}];
+ const p=createPostseasonState({...tied,schedule},2026),f=getNextPostseasonFixture(p,121);
+ assert.equal(p.round,"tiebreaker");
+ assert.equal(f.bestOf,1);
+ assert.equal(f.homeId,"lions");
+ recordPostseasonResult(p,f,{winnerId:"lions",homeScore:3,awayScore:1});
+ assert.equal(p.topSeed.teamId,"lions");
+ assert.equal(p.lowHalfChampion.teamId,"brothers");
+ assert.equal(p.round,"semifinal");
+ assert.equal(p.semifinal.wins.brothers,1);
+});
