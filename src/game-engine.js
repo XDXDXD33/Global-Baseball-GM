@@ -140,14 +140,16 @@ function checkWalkoff(game){
 function resolveInPlay(game,batter,pitcher,teamId){
  const offense=game.tactics[teamId]||{},contact=rating(batter,"contact"),power=rating(batter,"power"),speed=rating(batter,"speed");
  const movement=effectivePitchRating(game,pitcher,"movement");
- const hitChance=clamp(.255+(contact-50)*.0025-(movement-50)*.0015+(offense.aggressiveHitting==="yes"?.012:0),.12,.39);
+ const fielders=game.lineups[teamOnField(game)].map(id=>game.players[id]).filter(Boolean);
+ const defense=fielders.length?fielders.reduce((sum,p)=>sum+rating(p,"fielding"),0)/fielders.length:50;
+ const hitChance=clamp(.255+(contact-50)*.0025-(movement-50)*.0015-(defense-50)*.00055+(offense.aggressiveHitting==="yes"?.012:0),.12,.39);
  if(random(game)<hitChance){
   const hr=clamp(.035+(power-50)*.00125,.005,.105),triple=clamp(.012+(speed-50)*.00045,.004,.035),double=clamp(.12+(power-50)*.0012,.06,.22),r=random(game);
   const type=r<hr?"HR":r<hr+triple?"3B":r<hr+triple+double?"2B":"1B";
   hit(game,batter,pitcher,teamId,type);
   log(game,batter.name+" 擊出"+({HR:"全壘打",3B:"三壘安打",2B:"二壘安打","1B":"一壘安打"}[type]));
- }else if(random(game)<.022){
-  game.bases[0]=batter.id;log(game,batter.name+" 上壘，守備發生失誤");
+ }else if(random(game)<clamp(.025-(defense-50)*.00045,.008,.05)){
+  const old=[...game.bases];if(old[2])recordRun(game,teamId,old[2]);game.bases=[batter.id,old[0],old[1]];log(game,batter.name+" 上壘，守備發生失誤");
  }else{
   const fly=random(game)<.45;
   if(fly&&game.bases[2]&&game.outs<2){
