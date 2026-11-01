@@ -18,6 +18,7 @@ function repairLineup(state,teamId){
 export function initializeContracts(players,season=2026){
  const contracts={};
  for(const p of players){
+  if(!p.clubId||p.retired)continue;
   const years=2+(hash(p.id+"-"+season)%3);
   contracts[p.id]={salary:estimatePlayerSalary(p),yearsRemaining:years,expirySeason:season+years-1,status:"active",signedSeason:season,signingBonus:0};
  }
