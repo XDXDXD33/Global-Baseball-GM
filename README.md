@@ -12,6 +12,9 @@ Browser-based baseball GM simulation focused on CPBL, designed for future global
 - A curated cross-era CPBL foreign-star index links verified alumni to their source IDs and career seasons without inventing ratings.
 - Historical data is stored in IndexedDB; career settings and saves use localStorage.
 - JSON save export.
+- 26-player fictional demo rosters for all six clubs, a 120-game-per-team schedule, live pitch-by-pitch play and same-engine quick simulation.
+- Player-controlled batting order, starting rotation, base-running/attack strategy, pinch hitters and pitching changes.
+- Front-office controls for ticket pricing, facility upgrades, free-agent signing, payroll, gate revenue and monthly finance settlement.
 
 ## Historical data source
 The initial compatible source is [CPBL Opendata](https://github.com/ldkrsi/cpbl-opendata). Its repository lists annual CPBL batting, pitching and fielding CSVs from 1990 through 2024 and includes an MIT license. The curator documents ID changes after the 2021 official-site migration and other historical data caveats. The MIT repository license does not automatically resolve rights in underlying CPBL league data, so third-party CSV files are not bundled with this game.
