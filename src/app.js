@@ -5,13 +5,18 @@ import { renderHistoryPage, bindHistoryPage } from "./history-ui.js";
 
 const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = "global-baseball-gm-save-v1";
+const HISTORY_DB = "global-baseball-gm-history-v1";
+const emptyHistory = () => ({players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]});
+function historyDb(){return new Promise((resolve,reject)=>{if(!("indexedDB" in window)){reject(new Error("瀏覽器不支援 IndexedDB"));return;}const req=indexedDB.open(HISTORY_DB,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains("records"))req.result.createObjectStore("records");};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+async function saveHistoryDB(data){const db=await historyDb();await new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").put(data,"history");tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();}
+async function readHistoryDB(){try{const db=await historyDb();const value=await new Promise((resolve,reject)=>{const req=db.transaction("records","readonly").objectStore("records").get("history");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return value||emptyHistory();}catch(e){console.warn("Historical database could not be loaded",e);return emptyHistory();}}
 let state = null;
 let page = "dashboard";
 
 function club(id){ return LEAGUE.clubs.find(c=>c.id===id); }
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function load(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){state=JSON.parse(raw);state.history ||= {players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]};return true;}}catch(e){console.warn("Save data could not be read",e);}return false;}
-function persist(){if(!state)return;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));$("#save-indicator").textContent="已儲存 · "+new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});}
+function load(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){state=JSON.parse(raw);state.history = emptyHistory();return true;}}catch(e){console.warn("Save data could not be read",e);}return false;}
+function persist(){if(!state)return Promise.resolve();const save={...state};delete save.history;localStorage.setItem(STORAGE_KEY,JSON.stringify(save));const saved=state.history?saveHistoryDB(state.history):Promise.resolve();$("#save-indicator").textContent="已儲存 · "+new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});return saved;}
 function setup(){
   $("#team-select").innerHTML=LEAGUE.clubs.map(c=>`<option value="${c.id}">${c.name} · ${c.city}</option>`).join("");
   $("#career-dialog").showModal();
@@ -19,7 +24,7 @@ function setup(){
 function startCareer(e){
   e.preventDefault();
   const team=club($("#team-select").value);
-  state={version:1,leagueId:"cpbl",season:2026,month:1,manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players:DEMO_PLAYERS.map(p=>({...p,ratings:{...p.ratings}})),history:{players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]},createdAt:new Date().toISOString()};
+  state={version:1,leagueId:"cpbl",season:2026,month:1,manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players:DEMO_PLAYERS.map(p=>({...p,ratings:{...p.ratings}})),history:emptyHistory(),createdAt:new Date().toISOString()};
   $("#career-dialog").close();$("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;persist();render();
 }
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
@@ -60,4 +65,4 @@ $("#career-form").addEventListener("submit",startCareer);
 $("#foreign-limit").addEventListener("input",e=>$("#foreign-value").textContent=e.target.value+" 人");
 $("#save-btn").addEventListener("click",persist);
 document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>{if(!state)return;page=b.dataset.page;render();}));
-if(load()){ $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;$("#save-indicator").textContent="已載入本機存檔";render(); }
+if(load()){ $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;$("#save-indicator").textContent="已載入本機存檔";render();readHistoryDB().then(data=>{if(state){state.history=data;render();}}); }
