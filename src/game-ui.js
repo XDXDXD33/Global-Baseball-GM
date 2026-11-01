@@ -2,10 +2,12 @@ import { LEAGUE } from "./data.js";
 import { createGame,advancePitch,advancePlateAppearance,simulateGame,changePitcher,substituteBatter,applyGameResult,calculateStandings,gameSituation,setGameCommand,attemptStealBase,executeSacrificeBunt,issueIntentionalWalk,substituteRunner,substituteFielder } from "./game-engine.js";
 import { estimatePlayerSalary } from "./rules.js";
 import { developPlayers } from "./player-development.js";
+import { createPostseasonState,getNextPostseasonFixture,recordPostseasonResult } from "./postseason-engine.js";
+import { advanceContractYear } from "./contract-engine.js";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const club=id=>LEAGUE.clubs.find(c=>c.id===id);
 const money=n=>"$"+Math.round(n).toLocaleString();
-function fixtureForToday(state){return state.schedule.find(g=>g.matchday===state.matchday&&(g.homeId===state.clubId||g.awayId===state.clubId));}
+function fixtureForToday(state){if(state.phase==="postseason"){const f=getNextPostseasonFixture(state.postseason,state.matchday);return f&&(f.homeId===state.clubId||f.awayId===state.clubId)?f:null;}return state.schedule.find(g=>g.matchday===state.matchday&&(g.homeId===state.clubId||g.awayId===state.clubId));}
 function scoreTable(game){
  const home=game.fixture.homeId,away=game.fixture.awayId,max=Math.max(game.inning,9);
  const cell=(id,i)=>game.lineScore[id]?.[i]??"—";
@@ -22,6 +24,8 @@ function currentPitcherOptions(game,state){
 }
 export function renderGamePage(state){
  const fixture=fixtureForToday(state),standings=calculateStandings(state.schedule),completed=state.schedule.filter(g=>g.status==="final").length;
+ if(state.phase==="champion")return `<section class="panel"><div class="game-final"><h2>球季結束</h2><h3>${esc(club(state.postseason?.championId)?.name||"未知球隊")} 奪得 ${state.season} 年總冠軍！</h3><p>例行賽與季後賽已完成，可以開始下一個球季。</p><button id="next-season" class="button button-primary">進入下一球季 →</button></div></section>`;
+ if(state.phase==="postseason"&&!fixture){const next=getNextPostseasonFixture(state.postseason,state.matchday),series=state.postseason.round==="semifinal"?state.postseason.semifinal:state.postseason.championship;return `<section class="panel"><div class="panel-heading-row"><div><h3>季後賽 · ${state.postseason.round==="semifinal"?"季後挑戰賽":"總冠軍賽"}</h3><p class="field-help">目前進行：${esc(club(series.homeTeamId)?.name||"")} ${series.wins[series.homeTeamId]} 勝 · ${series.wins[series.awayTeamId]} 勝 ${esc(club(series.awayTeamId)?.name||"")}</p></div><span class="tag real">第 ${next?.gameNumber||"—"} 戰</span></div><p>本場由其他球隊進行，你可以模擬賽事並追蹤系列賽結果。</p><button id="simulate-postseason" class="button button-primary">模擬下一場季後賽</button></section>`;}
  if(state.currentGame){
   const g=state.currentGame,s=gameSituation(g),userAtBat=g.half==="top"?g.fixture.awayId===state.clubId:g.fixture.homeId===state.clubId;
   const pitcherTeam=g.half==="top"?g.fixture.homeId:g.fixture.awayId,pitchingForUser=pitcherTeam===state.clubId,pitcherOptions=currentPitcherOptions(g,state);
@@ -45,11 +49,15 @@ export function renderGamePage(state){
  <section class="panel"><h3>最近賽果</h3><div class="table-wrap"><table><thead><tr><th>比賽日</th><th>客隊</th><th>比數</th><th>主隊</th></tr></thead><tbody>${state.schedule.filter(g=>g.status==="final"&&(g.homeId===state.clubId||g.awayId===state.clubId)).slice(-8).reverse().map(g=>`<tr><td>${g.matchday}</td><td>${esc(club(g.awayId).short)}</td><td>${g.awayScore} : ${g.homeScore}</td><td>${esc(club(g.homeId).short)}</td></tr>`).join("")||'<tr><td colspan="4">尚無比賽紀錄</td></tr>'}</tbody></table></div></section>${state.gameArchive?.length?`<section class="panel"><h3>最近一場完整比賽紀錄</h3><p class="field-help">${esc(club(state.gameArchive.at(-1).fixture.awayId).name)} ${state.gameArchive.at(-1).fixture.awayScore} : ${state.gameArchive.at(-1).fixture.homeScore} ${esc(club(state.gameArchive.at(-1).fixture.homeId).name)}</p><div class="table-wrap"><table><thead><tr><th>球員</th><th>PA</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th></tr></thead><tbody>${Object.entries(state.gameArchive.at(-1).batters).filter(([,x])=>x.PA>0).slice(0,18).map(([id,x])=>`<tr><td>${esc(state.players.find(p=>p.id===id)?.name||id)}</td><td>${x.PA}</td><td>${x.AB}</td><td>${x.H}</td><td>${x.HR}</td><td>${x.RBI}</td></tr>`).join("")}</tbody></table></div></section>`:""}`;
 }
 function recordStats(state,game){
+ state.injuries??={};
+ for(const injury of game.injuries||[])state.injuries[injury.playerId]={...injury,daysRemaining:injury.daysOut+1,createdMatchday:state.matchday};
  state.pitcherWorkload??={};
  for(const [id,stats] of Object.entries(game.pitcherStats))state.pitcherWorkload[id]=Math.min(220,Math.round((state.pitcherWorkload[id]||0)+stats.pitches));
  for(const [id,stats] of Object.entries(game.batterStats)){const target=state.seasonStats.batters[id]||(state.seasonStats.batters[id]={PA:0,AB:0,H:0,HR:0,RBI:0,BB:0,K:0,R:0,SB:0,CS:0,SH:0,SF:0,GDP:0,HBP:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
  for(const [id,stats] of Object.entries(game.pitcherStats)){const target=state.seasonStats.pitchers[id]||(state.seasonStats.pitchers[id]={outs:0,ER:0,H:0,BB:0,K:0,pitches:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
 }
+function advanceInjuryDays(state){for(const [id,injury] of Object.entries(state.injuries||{})){if(injury.createdMatchday===state.matchday)continue;injury.daysRemaining=Math.max(0,(Number(injury.daysRemaining)||0)-1);if(!injury.daysRemaining)delete state.injuries[id];}}
+function finishNextSeason(state){advanceContractYear(state);state.season++;state.matchday=1;state.month=1;state.phase="regular";state.postseason=null;state.schedule=createLeagueSchedule(state.season);state.currentGame=null;state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));state.wins=0;state.losses=0;}
 function settleEconomy(state,fixture,game){
  if(fixture.homeId===state.clubId){
   const wins=state.wins,losses=state.losses,winPct=(wins+losses)?wins/(wins+losses):.5;
@@ -75,6 +83,8 @@ export function bindGamePage(state,persist,render){
   state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,userTeamId:state.clubId,workload:state.pitcherWorkload||{}});
   persist();render();
  };
+ document.querySelector("#simulate-postseason")?.addEventListener("click",()=>{const fixture=getNextPostseasonFixture(state.postseason,state.matchday);if(!fixture)return;const game=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,workload:state.pitcherWorkload||{},injuries:state.injuries||{}});simulateGame(game);recordPostseasonResult(state.postseason,fixture,game.result);recordStats(state,game);state.gameArchive.push({fixture:{...fixture,homeScore:game.result.homeScore,awayScore:game.result.awayScore},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)});advanceInjuryDays(state);state.matchday++;if(state.postseason.status==="complete")state.phase="champion";persist();render();});
+ document.querySelector("#next-season")?.addEventListener("click",()=>{finishNextSeason(state);persist();render();});
  document.querySelector("#start-game")?.addEventListener("click",start);
  document.querySelector("#simulate-game")?.addEventListener("click",()=>{start();if(state.currentGame){simulateGame(state.currentGame);persist();render();}});
  document.querySelector("#pitch-one")?.addEventListener("click",()=>{advancePitch(state.currentGame);persist();render();});
@@ -91,12 +101,14 @@ export function bindGamePage(state,persist,render){
  document.querySelector("#apply-defense")?.addEventListener("click",()=>{const outId=document.querySelector("#defense-out")?.value,inId=document.querySelector("#defense-in")?.value;try{substituteFielder(state.currentGame,state.clubId,outId,inId);persist();render();}catch(e){alert(e.message);}});
  document.querySelector("#finish-matchday")?.addEventListener("click",()=>{
   const userFixture=state.schedule.find(x=>x.id===state.currentGame.id),game=state.currentGame;
-  const userResult=applyGameResult(userFixture,game);const archive={fixture:{...userResult},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)};delete userResult.boxScore;state.schedule=state.schedule.map(x=>x.id===userFixture.id?userResult:x);state.pitcherWorkload??={};for(const id of Object.keys(state.pitcherWorkload))state.pitcherWorkload[id]=Math.round(state.pitcherWorkload[id]*.72);recordStats(state,game);settleEconomy(state,userFixture,game);state.gameArchive.push(archive);if(state.gameArchive.length>30)state.gameArchive.shift();
+  const userResult=applyGameResult(userFixture,game);const archive={fixture:{...userResult},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)};delete userResult.boxScore;
+  if(userFixture.phase==="postseason"){recordPostseasonResult(state.postseason,userFixture,game.result);recordStats(state,game);state.gameArchive.push(archive);advanceInjuryDays(state);state.currentGame=null;state.matchday++;if(state.postseason.status==="complete")state.phase="champion";persist();render();return;}
+  state.schedule=state.schedule.map(x=>x.id===userFixture.id?userResult:x);state.pitcherWorkload??={};for(const id of Object.keys(state.pitcherWorkload))state.pitcherWorkload[id]=Math.round(state.pitcherWorkload[id]*.72);recordStats(state,game);settleEconomy(state,userFixture,game);state.gameArchive.push(archive);if(state.gameArchive.length>30)state.gameArchive.shift();
   const today=state.schedule.filter(x=>x.matchday===state.matchday&&x.status==="scheduled");
-  for(const fixture of today){const ai=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,workload:state.pitcherWorkload||{}});simulateGame(ai);const result=applyGameResult(fixture,ai);delete result.boxScore;state.schedule=state.schedule.map(x=>x.id===fixture.id?result:x);recordStats(state,ai);settleEconomy(state,fixture,ai);}
-  state.currentGame=null;state.matchday++;
-  if((state.matchday-1)%10===0)finishMonth(state);
-  if(state.matchday>120){state.season++;state.matchday=1;state.month=1;state.schedule=createLeagueSchedule(state.season);state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));}
+  for(const fixture of today){const ai=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,workload:state.pitcherWorkload||{},injuries:state.injuries||{}});simulateGame(ai);const result=applyGameResult(fixture,ai);delete result.boxScore;state.schedule=state.schedule.map(x=>x.id===fixture.id?result:x);recordStats(state,ai);settleEconomy(state,fixture,ai);}
+  state.currentGame=null;advanceInjuryDays(state);state.matchday++;
+  if((state.matchday-1)%10===0&&state.matchday<=120)finishMonth(state);
+  if(state.matchday>120&&state.phase!=="postseason"){state.phase="postseason";state.postseason=createPostseasonState(calculateStandings(state.schedule),state.season);}
   state.wins=state.schedule.filter(g=>g.status==="final"&&g.winnerId===state.clubId).length;
   state.losses=state.schedule.filter(g=>g.status==="final"&&g.winnerId&&g.winnerId!==state.clubId&&(g.homeId===state.clubId||g.awayId===state.clubId)).length;
   persist();render();
