@@ -53,14 +53,17 @@
 - [x] Trade deadline enforcement
 - [x] AI-initiated balanced trade proposals with user accept/decline and deadline expiry
 - [x] AI free-agent signings, roster construction and contract renewal
-- [ ] Coaches, medical staff, advanced scouting reports and draft/prospects
+- [ ] Coaches, medical staff and advanced scouting reports
+- [x] Three-round amateur draft with AI club picks and user-controlled selections
+- [x] Separate minor-league roster, monthly prospect development and potential ceilings
+- [x] Prospect promotion to the first team and eligible player demotion
 - [x] Club-level AI budgets, contender/rebuild strategy and lineup optimization
 
 ## Phase 5 - long-term careers
 - [x] Age-aware development and decline
 - [x] Injury recovery and player availability
 - [x] User retirement and AI retirement at season rollover
-- [ ] Draft and prospect generation
+- [x] Draft and prospect generation
 - [ ] Player morale, chemistry and clubhouse events
 - [ ] Multi-season financial and statistical balance tests
 
