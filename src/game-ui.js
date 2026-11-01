@@ -50,11 +50,11 @@ export function renderGamePage(state){
 }
 function recordStats(state,game){
  state.injuries??={};
- for(const injury of game.injuries||[])state.injuries[injury.playerId]={...injury,daysRemaining:injury.daysOut+1,createdMatchday:state.matchday};
+ for(const injury of game.injuries||[])state.injuries[injury.playerId]={...injury,daysRemaining:injury.daysOut,createdMatchday:state.matchday};
  state.pitcherWorkload??={};
  for(const [id,stats] of Object.entries(game.pitcherStats))state.pitcherWorkload[id]=Math.min(220,Math.round((state.pitcherWorkload[id]||0)+stats.pitches));
- for(const [id,stats] of Object.entries(game.batterStats)){const target=state.seasonStats.batters[id]||(state.seasonStats.batters[id]={PA:0,AB:0,H:0,HR:0,RBI:0,BB:0,K:0,R:0,SB:0,CS:0,SH:0,SF:0,GDP:0,HBP:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
- for(const [id,stats] of Object.entries(game.pitcherStats)){const target=state.seasonStats.pitchers[id]||(state.seasonStats.pitchers[id]={outs:0,ER:0,H:0,BB:0,K:0,pitches:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
+ for(const [id,stats] of Object.entries(game.batterStats)){const target=state.seasonStats.batters[id]||(state.seasonStats.batters[id]={PA:0,AB:0,H:0,HR:0,RBI:0,BB:0,K:0,R:0,SB:0,CS:0,SH:0,SF:0,GDP:0,HBP:0,CI:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
+ for(const [id,stats] of Object.entries(game.pitcherStats)){const target=state.seasonStats.pitchers[id]||(state.seasonStats.pitchers[id]={outs:0,ER:0,H:0,BB:0,K:0,pitches:0,WP:0,PB:0,BK:0});for(const k of Object.keys(target))target[k]+=(stats[k]||0);}
 }
 function advanceInjuryDays(state){for(const [id,injury] of Object.entries(state.injuries||{})){if(injury.createdMatchday===state.matchday)continue;injury.daysRemaining=Math.max(0,(Number(injury.daysRemaining)||0)-1);if(!injury.daysRemaining)delete state.injuries[id];}}
 function finishNextSeason(state){advanceContractYear(state);state.season++;state.matchday=1;state.month=1;state.phase="regular";state.postseason=null;state.schedule=createLeagueSchedule(state.season);state.currentGame=null;state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));state.wins=0;state.losses=0;}
@@ -80,7 +80,7 @@ function finishMonth(state){
 export function bindGamePage(state,persist,render){
  const start=()=>{
   const fixture=fixtureForToday(state);if(!fixture)return;
-  state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,userTeamId:state.clubId,workload:state.pitcherWorkload||{}});
+  state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,userTeamId:state.clubId,workload:state.pitcherWorkload||{},injuries:state.injuries||{}});
   persist();render();
  };
  document.querySelector("#simulate-postseason")?.addEventListener("click",()=>{const fixture=getNextPostseasonFixture(state.postseason,state.matchday);if(!fixture)return;const game=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,workload:state.pitcherWorkload||{},injuries:state.injuries||{}});simulateGame(game);recordPostseasonResult(state.postseason,fixture,game.result);recordStats(state,game);state.gameArchive.push({fixture:{...fixture,homeScore:game.result.homeScore,awayScore:game.result.awayScore},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)});advanceInjuryDays(state);state.matchday++;if(state.postseason.status==="complete")state.phase="champion";persist();render();});
