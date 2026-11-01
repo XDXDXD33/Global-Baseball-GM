@@ -21,26 +21,33 @@ function repairTeamLineup(state,teamId){
  const bullpen=roster.filter(p=>["RP","P"].includes(p.position)).map(p=>p.id);
  state.lineups[teamId]={...cfg,lineup,rotation,bullpen};
 }
-export function executeOneForOneTrade(state,{outgoingId,incomingId}){
- const outgoing=state.players.find(p=>p.id===outgoingId),incoming=state.players.find(p=>p.id===incomingId);
- if(!outgoing||outgoing.clubId!==state.clubId)throw new Error("請選擇自己球隊的球員作為交易籌碼");
- if(!incoming||!incoming.clubId||incoming.clubId===state.clubId)throw new Error("請選擇其他球隊的球員");
- const opponentId=incoming.clubId,userCfg=state.lineups?.[state.clubId]||{};
- if((userCfg.lineup||[]).includes(outgoing.id)||(userCfg.rotation||[]).includes(outgoing.id))throw new Error("這名球員目前在先發打序或先發輪值，請先調整陣容再交易");
+export function executeMultiPlayerTrade(state,{outgoingIds,incomingIds}){
+ const outIds=[...new Set((outgoingIds||[]).filter(Boolean))],inIds=[...new Set((incomingIds||[]).filter(Boolean))];
+ if(!outIds.length||!inIds.length||outIds.length>3||inIds.length>3)throw new Error("交易雙方各須選擇 1 至 3 名球員");
+ if(state.currentGame?.status==="live")throw new Error("比賽進行中不能進行球員交易");
+ const outgoing=outIds.map(id=>state.players.find(p=>p.id===id)),incoming=inIds.map(id=>state.players.find(p=>p.id===id));
+ if(outgoing.some(p=>!p||p.clubId!==state.clubId))throw new Error("送出的球員必須全部來自本隊");
+ if(incoming.some(p=>!p?.clubId||p.clubId===state.clubId))throw new Error("換入的球員必須來自其他球隊");
+ const opponentId=incoming[0].clubId;
+ if(incoming.some(p=>p.clubId!==opponentId))throw new Error("一次交易只能與同一支球隊談判");
+ const userCfg=state.lineups?.[state.clubId]||{};
+ if(outIds.some(id=>(userCfg.lineup||[]).includes(id)||(userCfg.rotation||[]).includes(id)))throw new Error("先發打序或先發輪值球員必須先調整陣容才能交易");
  const userRoster=state.players.filter(p=>p.clubId===state.clubId),opponentRoster=state.players.filter(p=>p.clubId===opponentId);
- const userForeign=userRoster.filter(p=>p.id!==outgoing.id&&p.foreign).length+(incoming.foreign?1:0);
- const opponentForeign=opponentRoster.filter(p=>p.id!==incoming.id&&p.foreign).length+(outgoing.foreign?1:0);
+ if(userRoster.length-outgoing.length+incoming.length>30)throw new Error("交易後本隊名單會超過 30 人");
+ if(opponentRoster.length-incoming.length+outgoing.length>30)throw new Error("交易後對方名單會超過 30 人");
+ const userForeign=userRoster.filter(p=>!outIds.includes(p.id)&&p.foreign).length+incoming.filter(p=>p.foreign).length;
+ const opponentForeign=opponentRoster.filter(p=>!inIds.includes(p.id)&&p.foreign).length+outgoing.filter(p=>p.foreign).length;
  if(userForeign>state.foreignLimit)throw new Error("交易後本隊洋將人數會超過名額上限");
- if(opponentForeign>state.foreignLimit)throw new Error("對方球隊交易後會超過洋將名額，無法完成交易");
- const outValue=calculateTradeValue(outgoing),inValue=calculateTradeValue(incoming);
- if(outValue<inValue*.88)throw new Error("對方球團認為交易條件不足，請提高交易籌碼");
- state.players=state.players.map(p=>p.id===outgoing.id?{...p,clubId:opponentId}:p.id===incoming.id?{...p,clubId:state.clubId}:p);
- state.lineups[state.clubId]??={lineup:[],rotation:[],bullpen:[]};
- state.lineups[state.clubId].bullpen=(state.lineups[state.clubId].bullpen||[]).filter(id=>id!==outgoing.id);
- if(["RP","P"].includes(incoming.position))state.lineups[state.clubId].bullpen.push(incoming.id);
- if(incoming.position==="SP"&&(state.lineups[state.clubId].rotation||[]).length<5)state.lineups[state.clubId].rotation.push(incoming.id);
- repairTeamLineup(state,opponentId);
- const record={season:state.season,matchday:state.matchday,fromTeam:state.clubId,toTeam:opponentId,outgoingId:outgoing.id,outgoingName:outgoing.name,incomingId:incoming.id,incomingName:incoming.name,outgoingValue:outValue,incomingValue:inValue,date:new Date().toISOString()};
+ if(opponentForeign>state.foreignLimit)throw new Error("對方球隊交易後洋將人數會超過名額上限");
+ const outValue=outgoing.reduce((sum,p)=>sum+calculateTradeValue(p),0),inValue=incoming.reduce((sum,p)=>sum+calculateTradeValue(p),0);
+ if(outValue<inValue*.88)throw new Error("對方球團認為整體交易條件不足，請增加籌碼");
+ const moved=new Map([...outgoing.map(p=>[p.id,opponentId]),...incoming.map(p=>[p.id,state.clubId])]);
+ state.players=state.players.map(p=>moved.has(p.id)?{...p,clubId:moved.get(p.id)}:p);
+ repairTeamLineup(state,state.clubId);repairTeamLineup(state,opponentId);
+ const record={season:state.season,matchday:state.matchday,fromTeam:state.clubId,toTeam:opponentId,outgoingIds:outgoing.map(p=>p.id),outgoingName:outgoing.map(p=>p.name).join("、"),incomingIds:incoming.map(p=>p.id),incomingName:incoming.map(p=>p.name).join("、"),outgoingValue:outValue,incomingValue:inValue,date:new Date().toISOString()};
  state.tradeHistory??=[];state.tradeHistory.push(record);
  return record;
+}
+export function executeOneForOneTrade(state,{outgoingId,incomingId}){
+ return executeMultiPlayerTrade(state,{outgoingIds:[outgoingId],incomingIds:[incomingId]});
 }
