@@ -49,7 +49,7 @@
 - [x] Player release with remaining-contract compensation
 - [x] Contract expiry at season rollover and AI contract renewal
 - [x] One-for-one player trades with AI valuation and roster repair
-- [ ] Multi-player trades, trade deadline and AI-initiated trade proposals
+- [x] Multi-player trades (up to three players per side)\n- [ ] Trade deadline and AI-initiated trade proposals
 - [ ] AI free-agent bidding and roster construction
 - [ ] Coaches, medical staff, advanced scouting reports and draft/prospects
 - [ ] Club-level AI strategy and long-term rebuilding/contending logic
@@ -57,7 +57,7 @@
 ## Phase 5 - long-term careers
 - [x] Age-aware development and decline
 - [x] Injury recovery and player availability
-- [ ] Retirement, draft and prospect generation
+- [x] User retirement and AI retirement at season rollover\n- [ ] Draft and prospect generation
 - [ ] Player morale, chemistry and clubhouse events
 - [ ] Multi-season financial and statistical balance tests
 
