@@ -73,11 +73,11 @@ export function importHistoryCsv({path,name,text},history){
  if(meta.kind==="players"){
   for(const r of rows){if(!r.ID||!r.Name)continue;const prior=next.players[r.ID]||{};next.players[r.ID]={...prior,id:r.ID,name:r.Name,handedness:r.Handedness||prior.handedness||"",birthday:r.Birthday||prior.birthday||"",country:r.Country||prior.country||"",fullName:r["Full Name"]||prior.fullName||"",source:HISTORY_SOURCE.id};added++;}
  }else if(meta.kind==="standings"){
-  for(const r of rows){const year=num(r.Year);if(!year)continue;const team=resolveHistoricalTeam(r.Team,year,r["Team ID"]);next.standings.push({year,teamId:r["Team ID"],oldTeamId:r["Old ID"]||"",teamName:r.Team,teamNickname:r["Team Nickname"],wins:num(r.Win),losses:num(r.Lose),ties:num(r.Tie),...team,source:HISTORY_SOURCE.id});added++;}
+  for(const r of rows){const year=num(r.Year);if(!year)continue;const team=resolveHistoricalTeam(r.Team,year,r["Team ID"]);const record={year,teamId:r["Team ID"],oldTeamId:r["Old ID"]||"",teamName:r.Team,teamNickname:r["Team Nickname"],wins:num(r.Win),losses:num(r.Lose),ties:num(r.Tie),...team,source:HISTORY_SOURCE.id};const idx=next.standings.findIndex(x=>x.year===year&&x.teamId===record.teamId);if(idx>=0)next.standings[idx]=record;else next.standings.push(record);added++;}
  }else{
   if(!Number.isInteger(meta.year)||meta.year<1990||meta.year>2026)throw new Error("球季年份必須介於 1990 至 2026");
   const target=next[meta.kind];
-  for(const r of rows){if(!r.ID||!r.Name)continue;const team=resolveHistoricalTeam(r["Team Name"],meta.year),stats={};for(const k of numFields[meta.kind])stats[k]=num(r[k]);if(meta.kind==="fielding")stats.POS=r.POS||"";
+  for(const r of rows){if(!r.ID||!r.Name)continue;const team=resolveHistoricalTeam(r["Team Name"],meta.year,r["Team ID"]||""),stats={};for(const k of numFields[meta.kind])stats[k]=num(r[k]);if(meta.kind==="fielding")stats.POS=r.POS||"";
    const record={playerId:r.ID,playerName:r.Name,year:meta.year,teamId:r["Team ID"]||"",...team,stats,source:HISTORY_SOURCE.id};
    const key=meta.kind==="fielding"?[record.playerId,record.year,record.teamId,stats.POS].join("|"):[record.playerId,record.year,record.teamId].join("|");
    const idx=target.findIndex(x=>(meta.kind==="fielding"?[x.playerId,x.year,x.teamId,x.stats.POS]:[x.playerId,x.year,x.teamId]).join("|")===key);
