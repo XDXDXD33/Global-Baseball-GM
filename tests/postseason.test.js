@@ -27,6 +27,6 @@ test("championship completes when one club wins four games",()=>{
 });
 test("series follows 2-2-1 and 2-3-2 home-field patterns",()=>{
  const p=createPostseasonState(standings,2026);
- const homes=[];for(let n=0;n<5;n++){const f=getNextPostseasonFixture(p,121+n);homes.push(f.homeId);recordPostseasonResult(p,f,{winnerId:"lions",homeScore:3,awayScore:2});}
+ const homes=[];for(let n=0;n<5;n++){const f=getNextPostseasonFixture(p,121+n);homes.push(f.homeId);const winnerId=n%2===0?"dragons":"lions";recordPostseasonResult(p,f,{winnerId,homeScore:3,awayScore:2});}
  assert.deepEqual(homes,["lions","lions","dragons","dragons","lions"]);
 });
