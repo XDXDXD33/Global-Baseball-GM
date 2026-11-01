@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createInitialLeagueRoster,buildDefaultLineup,createLeagueSchedule,createGame,advancePitch,simulateGame,calculateStandings,applyGameResult,changePitcher,createFreeAgentPool,setGameCommand,attemptStealBase,executeSacrificeBunt,issueIntentionalWalk} from "../src/game-engine.js";
+import {createInitialLeagueRoster,buildDefaultLineup,createLeagueSchedule,createGame,advancePitch,simulateGame,calculateStandings,applyGameResult,changePitcher,createFreeAgentPool,setGameCommand,attemptStealBase,executeSacrificeBunt,issueIntentionalWalk,substituteRunner,substituteFielder,substituteBatter} from "../src/game-engine.js";
 import {LEAGUE} from "../src/data.js";
 const players=createInitialLeagueRoster(42);
 const lineups=Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)]));
@@ -52,11 +52,12 @@ test("player can set a batting approach and pitch type",()=>{
  const fixture={id:"commands",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
  const g=createGame({fixture,players,lineups,seed:9,userTeamId:"lions"});
  setGameCommand(g,"lions",{battingApproach:"power"});
- setGameCommand(g,"lions",{pitchType:"slider"});
  assert.equal(g.commands.lions.battingApproach,"power");
- assert.equal(g.commands.lions.pitchType,"slider");
- assert.throws(()=>setGameCommand(g,"brothers",{pitchType:"curve"}));
- assert.throws(()=>setGameCommand(g,"lions",{pitchType:"knuckleball"}));
+ assert.throws(()=>setGameCommand(g,"lions",{pitchType:"slider"}));
+ const defense=createGame({fixture,players,lineups,seed:10,userTeamId:"brothers"});
+ setGameCommand(defense,"brothers",{pitchType:"slider"});
+ assert.equal(defense.commands.brothers.pitchType,"slider");
+ assert.throws(()=>setGameCommand(defense,"brothers",{pitchType:"knuckleball"}));
 });
 test("sacrifice bunt advances a runner and records a plate appearance",()=>{
  const fixture={id:"bunt",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
@@ -114,4 +115,35 @@ test("recent pitcher workload can trigger an early bullpen change",()=>{
  const g=createGame({fixture,players,lineups,seed:8,workload:{[starter]:180}});
  advancePitch(g);
  assert.notEqual(g.pitcherId.brothers,starter);
+});
+
+test("pinch runner replaces the base runner and cannot re-enter",()=>{
+ const fixture={id:"pinch-runner",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:11,userTeamId:"lions"});
+ const oldRunner=g.lineups.lions[0],replacement=players.find(p=>p.clubId==="lions"&&!lineups.lions.lineup.includes(p.id)&&!lineups.lions.rotation.includes(p.id));
+ g.battingIndex.lions=1;g.bases[0]=oldRunner;
+ substituteRunner(g,"lions",0,replacement.id);
+ assert.equal(g.bases[0],replacement.id);
+ assert.equal(g.lineups.lions[0],replacement.id);
+ assert.ok(g.substitutedOut.includes(oldRunner));
+ assert.throws(()=>substituteRunner(g,"lions",0,oldRunner));
+});
+test("defensive substitution updates the batting slot and prevents re-entry",()=>{
+ const fixture={id:"defense-sub",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:12,userTeamId:"brothers"});
+ const old= g.lineups.brothers.find(id=>g.players[id].position==="LF");
+ const replacement=players.find(p=>p.clubId==="brothers"&&p.position==="OF"&&!lineups.brothers.lineup.includes(p.id));
+ substituteFielder(g,"brothers",old,replacement.id);
+ assert.ok(g.lineups.brothers.includes(replacement.id));
+ assert.ok(g.substitutedOut.includes(old));
+ assert.throws(()=>substituteFielder(g,"brothers",replacement.id,old));
+});
+test("pinch hitter is removed from future bench eligibility",()=>{
+ const fixture={id:"pinch-hit",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:13,userTeamId:"lions"});
+ const old=g.lineups.lions[0],replacement=players.find(p=>p.clubId==="lions"&&!lineups.lions.lineup.includes(p.id)&&!lineups.lions.rotation.includes(p.id));
+ substituteBatter(g,"lions",old,replacement.id);
+ assert.equal(g.lineups.lions[0],replacement.id);
+ assert.ok(g.substitutedOut.includes(old));
+ assert.throws(()=>substituteBatter(g,"lions",replacement.id,old));
 });
