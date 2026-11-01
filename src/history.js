@@ -61,10 +61,10 @@ export function detectHistoryFile(path){
  if(/(^|\/)players\.csv$/i.test(p))return {kind:"players"};
  if(/(^|\/)standings\.csv$/i.test(p))return {kind:"standings"};
  const m=p.match(/(?:^|\/)(battings|pitchings|fieldings)\/(\d{4})\.csv$/i)||p.match(/(?:^|\/)(battings|pitchings|fieldings)[-_](\d{4})\.csv$/i);
- if(m)return {kind:m[1].toLowerCase(),year:Number(m[2])};
+ if(m)return {kind:m[1].toLowerCase().replace(/s$/,""),year:Number(m[2])};
  return null;
 }
-const numFields={battings:["G","PA","AB","RBI","R","H","1B","2B","3B","HR","TB","SO","SB","GIDP","SH","SF","BB","IBB","HBP","CS","GO","FO"],pitchings:["G","GS","GR","CG","SHO","NBB","W","L","SV","BS","HLD","BF","NP","H","HR","BB","IBB","HBP","SO","WP","BK","R","ER","GO","FO"],fieldings:["G","TC","PO","A","E","DP","TP","PB","CS","SB"]};
+const numFields={batting:["G","PA","AB","RBI","R","H","1B","2B","3B","HR","TB","SO","SB","GIDP","SH","SF","BB","IBB","HBP","CS","GO","FO"],pitching:["G","GS","GR","CG","SHO","NBB","W","L","SV","BS","HLD","BF","NP","H","HR","BB","IBB","HBP","SO","WP","BK","R","ER","GO","FO"],fielding:["G","TC","PO","A","E","DP","TP","PB","CS","SB"]};
 export function importHistoryCsv({path,name,text},history){
  const meta=detectHistoryFile(path||name);if(!meta)throw new Error("無法辨識檔案。請保留 CPBL/battings/1990.csv 等資料夾結構，或命名為 battings-1990.csv。");
  const rows=parseCsv(text);if(!rows.length)throw new Error("CSV 沒有資料");
