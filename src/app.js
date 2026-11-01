@@ -1,5 +1,5 @@
 import { LEAGUE, DEMO_PLAYERS, RATING_LABELS } from "./data.js";
-import { validateForeignLimit, estimatePlayerAbility, estimatePlayerSalary } from "./rules.js";
+import { validateForeignLimit, estimatePlayerAbility, estimatePlayerSalary, calculateRatingConfidence } from "./rules.js";
 import { renderRosterTools, bindRosterTools } from "./player-tools.js";
 
 const $ = (s) => document.querySelector(s);
@@ -31,7 +31,7 @@ function dashboard(){
 }
 function rosterPage(){
  const roster=state.players.filter(p=>p.clubId===state.clubId),market={winPct:state.wins+state.losses?state.wins/(state.wins+state.losses):.5,fanbase:state.fanbase,averageSalary:state.averageSalary||1000000};
- const rows=roster.map(p=>{const r=Object.entries(p.ratings||{}).filter(([,v])=>Number.isFinite(v)).slice(0,3).map(([k,v])=>k+" "+v).join(" · ")||"尚無能力資料";return `<tr><td><b>${esc(p.name)}</b><small class="sub-cell">${esc(p.id)}</small></td><td>${esc(p.position)}</td><td>${p.age??"?"}</td><td>${p.foreign?"洋將":"本土"}</td><td>${Math.round(estimatePlayerAbility(p))}</td><td>${Math.round((Number(p.confidence)||0)*100)}%</td><td>${esc(r)}</td><td>${p.dataKind==="real"?'<span class="tag real">真實資料</span>':'<span class="tag fake">虛擬球員</span>'}</td><td>${Math.round(estimatePlayerSalary(p,market)).toLocaleString()}</td><td><button class="button button-quiet button-small" data-release-player="${esc(p.id)}">釋出</button></td></tr>`;}).join("");
+ const rows=roster.map(p=>{const r=Object.entries(p.ratings||{}).filter(([,v])=>Number.isFinite(v)).slice(0,3).map(([k,v])=>k+" "+v).join(" · ")||"尚無能力資料";return `<tr><td><b>${esc(p.name)}</b><small class="sub-cell">${esc(p.id)}</small></td><td>${esc(p.position)}</td><td>${p.age??"?"}</td><td>${p.foreign?"洋將":"本土"}</td><td>${Object.values(p.ratings||{}).some(Number.isFinite)?Math.round(estimatePlayerAbility(p)):"待評估"}</td><td>${Math.round(calculateRatingConfidence(p)*100)}%</td><td>${esc(r)}</td><td>${p.dataKind==="real"?'<span class="tag real">真實資料</span>':'<span class="tag fake">虛擬球員</span>'}</td><td>${Object.values(p.ratings||{}).some(Number.isFinite)?Math.round(estimatePlayerSalary(p,market)).toLocaleString():"待評估"}</td><td><button class="button button-quiet button-small" data-release-player="${esc(p.id)}">釋出</button></td></tr>`;}).join("");
  return `<div class="panel"><h3>球員名單 · ${roster.length} 人</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>類別</th><th>能力</th><th>信心</th><th>能力項目</th><th>資料</th><th>估計年薪</th><th>操作</th></tr></thead><tbody>${rows||'<tr><td colspan="10">目前沒有球員</td></tr>'}</tbody></table></div><p class="field-help">能力為 0-100 模擬值；信心反映證據完整度，不代表實力。薪資為遊戲估值。</p></div>${renderRosterTools(state,roster)}`;
 }
 function leaguePage(){
