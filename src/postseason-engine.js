@@ -1,5 +1,5 @@
 const BEST_OF={semifinal:5,championship:7};
-const winner=(s)=>s.wins>=Math.ceil(s.bestOf/2);
+const winner=(s)=>s.wins[s.homeTeamId]>=Math.ceil(s.bestOf/2)||s.wins[s.awayTeamId]>=Math.ceil(s.bestOf/2);
 function makeSeries(id,round,homeSeed,awaySeed){
  return {id,round,homeSeed,awaySeed,homeTeamId:homeSeed.teamId,awayTeamId:awaySeed.teamId,bestOf:BEST_OF[round],wins:{[homeSeed.teamId]:0,[awaySeed.teamId]:0},games:[],winnerId:null};
 }
