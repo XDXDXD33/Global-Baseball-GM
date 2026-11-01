@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {parseCsv,resolveHistoricalTeam,inningsToNumber,battingRates,pitchingRates,importHistoryCsv,searchHistoricalPlayers,getHistoricalSeasonLines,detectHistoryFile} from "../src/history.js";
 test("CSV parser handles quoted commas and escaped quotes",()=>{const r=parseCsv('ID,Name\n1,"王, 小明"\n2,"陳""小陳"""');assert.equal(r[0].Name,"王, 小明");assert.equal(r[1].Name,'陳"小陳"');});
-test("historical teams retain eras and franchise lineage",()=>{assert.equal(resolveHistoricalTeam("兄弟象",1990).franchiseId,"brothers");assert.equal(resolveHistoricalTeam("中信兄弟",2024).teamEraId,"brothers-2014");assert.equal(resolveHistoricalTeam("三商虎",1995).franchiseId,"san_shang_tigers");});
+test("historical teams retain eras and franchise lineage",()=>{assert.equal(resolveHistoricalTeam("兄弟",1990,"ACC").franchiseId,"brothers");assert.equal(resolveHistoricalTeam("味全",1990,"AAA").teamEraId,"dragons-1990");assert.equal(resolveHistoricalTeam("中信",2005,"AHH").franchiseId,"whales");assert.equal(resolveHistoricalTeam("中信兄弟",2024).teamEraId,"brothers-2014");assert.equal(resolveHistoricalTeam("三商虎",1995).franchiseId,"san_shang_tigers");});
 test("innings notation converts outs correctly",()=>{assert.equal(inningsToNumber("129.1"),129+1/3);assert.equal(inningsToNumber("67.2"),67+2/3);assert.equal(inningsToNumber("5.3"),null);});
 test("batting rate formulas use season totals",()=>{const r=battingRates({AB:100,H:30,TB:50,BB:10,IBB:2,HBP:1,SF:2});assert.equal(r.avg,.3);assert.ok(r.ops>0);});
 test("pitching rate formulas parse baseball innings",()=>{const r=pitchingRates({IP:"9.0",ER:3,H:9,BB:2,IBB:0});assert.equal(r.era,3);assert.equal(r.whip,11/9);});
