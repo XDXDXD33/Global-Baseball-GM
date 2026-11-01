@@ -91,7 +91,8 @@ function signForAI(state,teamId,player,strategy){
  const bonus=money(annual*.2);
  if(finance.budget<bonus)return false;
  const signed={...player,clubId:teamId,contractStatus:"signed"};
- state.players.push(signed);
+ const existingIndex=state.players.findIndex(p=>p.id===player.id);
+ if(existingIndex>=0)state.players[existingIndex]={...state.players[existingIndex],...signed};else state.players.push(signed);
  state.contracts??={};
  const years=strategy==="rebuild"&&age(player)<=24?3:2;
  state.contracts[player.id]={salary:annual,yearsRemaining:years,expirySeason:state.season+years-1,status:"active",signedSeason:state.season,signingBonus:bonus};
