@@ -111,7 +111,7 @@ export function bindGamePage(state,persist,render){
   for(const fixture of today){const ai=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,workload:state.pitcherWorkload||{},injuries:state.injuries||{}});simulateGame(ai);const result=applyGameResult(fixture,ai);delete result.boxScore;state.schedule=state.schedule.map(x=>x.id===fixture.id?result:x);recordStats(state,ai);settleEconomy(state,fixture,ai);}
   state.currentGame=null;advanceInjuryDays(state);state.matchday++;
   if((state.matchday-1)%10===0&&state.matchday<=120)finishMonth(state);
-  if(state.matchday>120&&state.phase!=="postseason"){state.phase="postseason";state.postseason=createPostseasonState(calculateStandings(state.schedule),state.season);}
+  if(state.matchday>120&&state.phase!=="postseason"){state.phase="postseason";state.postseason=createPostseasonState({firstHalf:calculateStandings(state.schedule.filter(g=>g.matchday<=60)),secondHalf:calculateStandings(state.schedule.filter(g=>g.matchday>60)),overall:calculateStandings(state.schedule)},state.season);}
   state.wins=state.schedule.filter(g=>g.status==="final"&&g.winnerId===state.clubId).length;
   state.losses=state.schedule.filter(g=>g.status==="final"&&g.winnerId&&g.winnerId!==state.clubId&&(g.homeId===state.clubId||g.awayId===state.clubId)).length;
   persist();render();
