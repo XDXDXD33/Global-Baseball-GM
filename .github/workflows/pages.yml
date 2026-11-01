@@ -28,6 +28,8 @@ jobs:
         run: npm test && node --check src/app.js && node --check src/player-tools.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
