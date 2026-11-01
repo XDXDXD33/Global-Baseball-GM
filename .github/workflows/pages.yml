@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
       - name: Run unit tests
-        run: npm test && node --check src/app.js && node --check src/player-tools.js && node --check src/history.js && node --check src/history-ui.js && node --check src/star-market.js && node --check src/game-engine.js && node --check src/player-development.js && node --check src/management-ui.js && node --check src/game-ui.js
+        run: npm test && node --check src/app.js && node --check src/player-tools.js && node --check src/history.js && node --check src/history-ui.js && node --check src/star-market.js && node --check src/game-engine.js && node --check src/player-development.js && node --check src/trade-engine.js && node --check src/management-ui.js && node --check src/game-ui.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
