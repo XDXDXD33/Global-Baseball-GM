@@ -23,7 +23,7 @@ function startCareer(e){
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
 function dashboard(){
  const c=club(state.clubId), roster=state.players.filter(p=>p.clubId===c.id);
- return `<div class="panel team-hero"><div class="team-logo">${c.code}</div><div><div class="eyebrow">YOUR FRANCHISE</div><h2>${c.name}</h2><p>${state.manager} · ${c.city} · ${state.season} 球季</p></div></div>
+ return `<div class="panel team-hero"><div class="team-logo">${c.code}</div><div><div class="eyebrow">YOUR FRANCHISE</div><h2>${c.name}</h2><p>${esc(state.manager)} · ${c.city} · ${state.season} 球季</p></div></div>
  <div class="grid" style="margin-top:16px">${stat("勝率",state.wins+state.losses?((state.wins/(state.wins+state.losses))*100).toFixed(1)+"%":"--","賽季尚未開始")}${stat("球團預算","$"+(state.budget/1000000).toFixed(1)+"M","示範初始資金")}${stat("球迷基數",state.fanbase.toLocaleString(),"初始估算")}${stat("洋將名額",state.foreignLimit+" 人","自訂上限 0–13")}</div>
  <div class="panel"><h3>球團控制台</h3><div class="empty-state">球團已建立。第一階段先提供球隊身分、名額規則、示範名單與本機存檔。下一階段將接上正式球員資料、賽程和逐打席比賽引擎。</div></div>
  <div class="panel"><h3>目前名單摘要</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>資料類型</th></tr></thead><tbody>${roster.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td><span class="tag fake">虛擬示範</span></td></tr>`).join("")}</tbody></table></div></div>`;
