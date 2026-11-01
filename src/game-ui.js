@@ -66,7 +66,7 @@ function finishMonth(state){
 export function bindGamePage(state,persist,render){
  const start=()=>{
   const fixture=fixtureForToday(state);if(!fixture)return;
-  state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,userTeamId:state.clubId});
+  state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,userTeamId:state.clubId,workload:state.pitcherWorkload||{}});
   persist();render();
  };
  document.querySelector("#start-game")?.addEventListener("click",start);
@@ -83,12 +83,12 @@ export function bindGamePage(state,persist,render){
  document.querySelector("#apply-pinch")?.addEventListener("click",()=>{const id=document.querySelector("#pinch-hitter")?.value,g=state.currentGame;if(!id||!g)return;try{const team=state.clubId,batter=g.players[g.lineups[team][g.battingIndex[team]%g.lineups[team].length]];substituteBatter(g,team,batter.id,id);persist();render();}catch(e){alert(e.message);}});
  document.querySelector("#finish-matchday")?.addEventListener("click",()=>{
   const userFixture=state.schedule.find(x=>x.id===state.currentGame.id),game=state.currentGame;
-  const userResult=applyGameResult(userFixture,game);const archive={fixture:{...userResult},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)};delete userResult.boxScore;state.schedule=state.schedule.map(x=>x.id===userFixture.id?userResult:x);recordStats(state,game);settleEconomy(state,userFixture,game);state.gameArchive.push(archive);if(state.gameArchive.length>30)state.gameArchive.shift();
+  const userResult=applyGameResult(userFixture,game);const archive={fixture:{...userResult},batters:game.batterStats,pitchers:game.pitcherStats,lineScore:game.lineScore,log:game.log.slice(-100)};delete userResult.boxScore;state.schedule=state.schedule.map(x=>x.id===userFixture.id?userResult:x);state.pitcherWorkload??={};for(const id of Object.keys(state.pitcherWorkload))state.pitcherWorkload[id]=Math.round(state.pitcherWorkload[id]*.72);recordStats(state,game);settleEconomy(state,userFixture,game);state.gameArchive.push(archive);if(state.gameArchive.length>30)state.gameArchive.shift();
   const today=state.schedule.filter(x=>x.matchday===state.matchday&&x.status==="scheduled");
-  for(const fixture of today){const ai=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics});simulateGame(ai);const result=applyGameResult(fixture,ai);delete result.boxScore;state.schedule=state.schedule.map(x=>x.id===fixture.id?result:x);recordStats(state,ai);settleEconomy(state,fixture,ai);}
+  for(const fixture of today){const ai=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,workload:state.pitcherWorkload||{}});simulateGame(ai);const result=applyGameResult(fixture,ai);delete result.boxScore;state.schedule=state.schedule.map(x=>x.id===fixture.id?result:x);recordStats(state,ai);settleEconomy(state,fixture,ai);}
   state.currentGame=null;state.matchday++;
   if((state.matchday-1)%10===0)finishMonth(state);
-  if(state.matchday>120){state.season++;state.matchday=1;state.schedule=createLeagueSchedule(state.season);state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));}
+  if(state.matchday>120){state.season++;state.matchday=1;state.month=1;state.schedule=createLeagueSchedule(state.season);state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));}
   state.wins=state.schedule.filter(g=>g.status==="final"&&g.winnerId===state.clubId).length;
   state.losses=state.schedule.filter(g=>g.status==="final"&&g.winnerId&&g.winnerId!==state.clubId&&(g.homeId===state.clubId||g.awayId===state.clubId)).length;
   persist();render();
