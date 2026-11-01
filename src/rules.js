@@ -1,41 +1,15 @@
-// League rules and financial estimates. All monetary outputs are simulation estimates, not real contract quotes.
-export function validateForeignLimit(value) {
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < 0 || n > 13) {
-    throw new RangeError("洋將名額必須是 0 到 13 的整數");
-  }
-  return n;
-}
-
-export function countForeignPlayers(players) {
-  return players.filter(p => p.foreign === true).length;
-}
-
-export function canRegisterForeignPlayer(players, foreignLimit) {
-  return countForeignPlayers(players) < validateForeignLimit(foreignLimit);
-}
-
-const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
-const mean = values => values.length ? values.reduce((a,b)=>a+b,0)/values.length : 50;
-
-// Expected input ratings are 0-100. Missing attributes are ignored rather than treated as zero.
-export function estimatePlayerAbility(player) {
-  const values = Object.values(player.ratings || {}).filter(Number.isFinite);
-  return clamp(mean(values), 20, 95);
-}
-
-// Reference annual salary in simulation currency. The market multiplier includes the requested
-// club factors: winning percentage, fanbase, and team average salary. It is not a promise of
-// historically accurate contract prices; coefficients will be calibrated by season simulations.
-export function estimateForeignPlayerSalary(player, club) {
-  const ability = estimatePlayerAbility(player);
-  const age = Number.isFinite(player.age) ? player.age : 27;
-  const ageFactor = age < 25 ? 0.88 : age <= 30 ? 1 : age <= 33 ? 0.9 : 0.76;
-  const winPct = clamp(Number(club.winPct) || 0.5, 0, 1);
-  const fanFactor = clamp(Math.sqrt((Number(club.fanbase) || 5000) / 5000), 0.65, 1.6);
-  const averageSalary = Math.max(1, Number(club.averageSalary) || 1_000_000);
-  const payrollFactor = clamp(Math.sqrt(averageSalary / 1_000_000), 0.7, 1.5);
-  const winningFactor = 0.82 + winPct * 0.36;
-  const base = 350_000 * Math.pow(ability / 50, 2.15) * ageFactor;
-  return Math.round(base * fanFactor * payrollFactor * winningFactor / 1000) * 1000;
-}
+export function validateForeignLimit(v){const n=Number(v);if(!Number.isInteger(n)||n<0||n>13)throw new RangeError("洋將名額必須是 0 到 13 的整數");return n;}
+export const countForeignPlayers=ps=>ps.filter(p=>p.foreign===true).length;
+export const canRegisterForeignPlayer=(ps,n)=>countForeignPlayers(ps)<validateForeignLimit(n);
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const BAT={contact:.22,power:.2,eye:.14,avoidK:.1,speed:.1,stealing:.06,fielding:.08,arm:.05,range:.05};
+const PIT={velocity:.2,control:.22,movement:.22,stamina:.14,fielding:.04,arm:.04,range:.04,eye:.05,avoidK:.05};
+export function estimatePlayerAbility(p){const r=p.ratings||{},w=/^(SP|RP|P)$/.test(p.position||"")?PIT:BAT,e=Object.entries(w).filter(([k])=>Number.isFinite(r[k]));if(!e.length)return 50;const total=e.reduce((s,[,v])=>s+v,0);return clamp(e.reduce((s,[k,v])=>s+r[k]*v,0)/total,0,100);}
+export function calculateRatingConfidence(p){if(Number.isFinite(p.confidence))return clamp(p.confidence,0,1);return clamp((p.source?.25:0)+(p.dataKind==="real"&&p.identityStatus==="verified"?.25:0)+Math.min(Array.isArray(p.seasons)?p.seasons.length:0,5)*.08+(Object.values(p.ratings||{}).filter(Number.isFinite).length>=5?.1:0),0,.95);}
+export function estimatePlayerRatings(p){return {overall:Math.round(estimatePlayerAbility(p)*10)/10,attributes:{...(p.ratings||{})},confidence:calculateRatingConfidence(p),scale:"0-100",methodVersion:"cpbl-rating-v1"};}
+export function validatePlayerRecord(p){const e=[];if(!p||typeof p!=="object")return {valid:false,errors:["球員資料格式錯誤"]};if(!String(p.id||"").trim())e.push("缺少 ID");if(!String(p.name||"").trim())e.push("缺少姓名");if(!["brothers","lions","guardians","monkeys","dragons","hawks"].includes(p.clubId))e.push("未知球隊代碼");if(!/^(SP|RP|P|C|1B|2B|3B|SS|LF|CF|RF|DH|OF)$/.test(p.position||""))e.push("守位代碼不正確");if(!Number.isInteger(Number(p.age))||p.age<16||p.age>55)e.push("年齡須為 16 至 55 的整數");if(typeof p.foreign!=="boolean")e.push("foreign 必須是布林值");if(!["real","fictional"].includes(p.dataKind))e.push("dataKind 必須是 real 或 fictional");if(p.dataKind==="real"&&!String(p.source||"").trim())e.push("真實球員必須提供來源");if(p.confidence!==undefined&&(!Number.isFinite(Number(p.confidence))||p.confidence<0||p.confidence>1))e.push("confidence 須介於 0 至 1");for(const [k,v] of Object.entries(p.ratings||{}))if(v!==""&&v!==null&&v!==undefined&&(!Number.isFinite(Number(v))||v<0||v>100))e.push(k+" 須介於 0 至 100");return {valid:!e.length,errors:e};}
+export function findDuplicatePlayer(c,ps){const norm=s=>String(s||"").normalize("NFKC").replace(/[\s·・.．]/g,"").toLowerCase();return ps.some(p=>p.id===c.id||(norm(p.name)===norm(c.name)&&p.clubId===c.clubId&&p.position===c.position));}
+function csvRows(s){const out=[];let row=[],cell="",q=false;s=String(s).replace(/^\uFEFF/,"");for(let i=0;i<s.length;i++){let c=s[i],n=s[i+1];if(c==='"'&&q&&n==='"'){cell+='"';i++;}else if(c==='"')q=!q;else if(c===","&&!q){row.push(cell);cell="";}else if((c==="\n"||c==="\r")&&!q){if(c==="\r"&&n==="\n")i++;row.push(cell);if(row.some(x=>x.trim()))out.push(row);row=[];cell="";}else cell+=c;}if(q)throw Error("CSV 雙引號未配對");row.push(cell);if(row.some(x=>x.trim()))out.push(row);return out;}
+export function parsePlayerCsv(s){const rows=csvRows(s);if(rows.length<2)throw Error("CSV 至少需要標題列與一筆資料");const h=rows[0].map(x=>x.trim()),req=["id","name","clubId","position","age","foreign","dataKind"],miss=req.filter(x=>!h.includes(x));if(miss.length)throw Error("缺少必要欄位："+miss.join(", "));const keys=["contact","power","eye","avoidK","speed","stealing","fielding","arm","range","velocity","control","movement","stamina"],players=[],errors=[];rows.slice(1).forEach((r,i)=>{if(r.length!==h.length){errors.push("第 "+(i+2)+" 列欄位數量不符");return;}const x=Object.fromEntries(h.map((k,j)=>[k,r[j].trim()])),f=x.foreign.toLowerCase();if(!["true","false","1","0","yes","no"].includes(f)){errors.push("第 "+(i+2)+" 列 foreign 格式錯誤");return;}const ratings={};keys.forEach(k=>{if(x[k])ratings[k]=Number(x[k]);});players.push({id:x.id,name:x.name,clubId:x.clubId,position:x.position,age:Number(x.age),role:x.role||"",foreign:["true","1","yes"].includes(f),dataKind:x.dataKind,identityStatus:x.identityStatus||"unresolved",source:x.source||"",confidence:x.confidence===""||x.confidence===undefined?undefined:Number(x.confidence),ratings});});return {players,errors};}
+export function estimatePlayerSalary(p,c={}){const a=estimatePlayerAbility(p),age=p.age||27,ageF=age<25?.88:age<=30?1:age<=33?.9:.76,win=clamp(Number(c.winPct)||.5,0,1),fan=clamp(Math.sqrt((Number(c.fanbase)||5000)/5000),.65,1.6),pay=clamp(Math.sqrt((Number(c.averageSalary)||1e6)/1e6),.7,1.5);return Math.round(350000*Math.pow(a/50,2.15)*ageF*fan*pay*(.82+win*.36)/1000)*1000;}
+export const estimateForeignPlayerSalary=estimatePlayerSalary;
