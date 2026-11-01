@@ -196,6 +196,7 @@ export function runAIClubManagement(state,{phase="monthly"}={}){
 export function reviewAITradeProposals(state){
  state.aiTradeProposals??=[];
  const day=Number(state.matchday)||1;
+ for(const old of state.aiTradeProposals)if(old.status==="pending"&&(old.season!==state.season||day>90))old.status="expired";
  if(state.phase!=="regular"||day>90||day<=1||((day-1)%20)!==0||state.currentGame?.status==="live")return [];
  if(state.aiTradeProposals.filter(x=>x.status==="pending").length>=2)return [];
  initializeAIClubFinances(state);
