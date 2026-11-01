@@ -36,13 +36,13 @@ test("release charges compensation and removes the player from active lineup",()
  assert.ok(!s.lineups[s.clubId].bullpen.includes(p.id));
  assert.ok(s.freeAgents.some(x=>x.id===p.id));
 });
-test("expired user contract enters free agency while AI contracts auto-renew",()=>{
+test("expired user and AI contracts both enter free agency for offseason evaluation",()=>{
  const s=state(),user=s.players.find(x=>x.clubId===s.clubId),ai=s.players.find(x=>x.clubId==="lions");
  s.contracts[user.id]={salary:500000,yearsRemaining:1};s.contracts[ai.id]={salary:500000,yearsRemaining:1};
  const expired=advanceContractYear(s);
  assert.ok(expired.some(x=>x.id===user.id));
  assert.equal(s.players.find(x=>x.id===user.id).clubId,null);
- assert.equal(s.contracts[ai.id].yearsRemaining,2);
+ assert.equal(s.players.find(x=>x.id===ai.id).clubId,null);\n assert.ok(s.freeAgents.some(x=>x.id===ai.id));\n assert.equal(s.contracts[ai.id],undefined);
 });
 
 test("initial contract generation skips released and retired players",()=>{
