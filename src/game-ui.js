@@ -5,6 +5,7 @@ import { developPlayers } from "./player-development.js";
 import { createPostseasonState,getNextPostseasonFixture,recordPostseasonResult } from "./postseason-engine.js";
 import { advanceContractYear } from "./contract-engine.js";
 import { processAiRetirements } from "./retirement-engine.js";
+import { runAIClubManagement,settleAIClubFinances } from "./ai-management.js";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const club=id=>LEAGUE.clubs.find(c=>c.id===id);
 const money=n=>"$"+Math.round(n).toLocaleString();
@@ -63,7 +64,7 @@ function recordStats(state,game,isPostseason=false){
  for(const [id,stats] of Object.entries(game.fieldingStats||{})){const target=bucket.fielders[id]||(bucket.fielders[id]={E:0,PO:0,A:0,DP:0,PB:0,CI:0});for(const [k,v] of Object.entries(stats))target[k]=(Number(target[k])||0)+Number(v||0);}
 }
 function advanceInjuryDays(state){for(const [id,injury] of Object.entries(state.injuries||{})){if(injury.createdMatchday===state.matchday)continue;injury.daysRemaining=Math.max(0,(Number(injury.daysRemaining)||0)-1);if(!injury.daysRemaining)delete state.injuries[id];}}
-function finishNextSeason(state){processAiRetirements(state);advanceContractYear(state);state.season++;state.matchday=1;state.month=1;state.phase="regular";state.postseason=null;state.schedule=createLeagueSchedule(state.season);state.currentGame=null;state.seasonStats={batters:{},pitchers:{},fielders:{}};state.postseasonStats=null;state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));state.wins=0;state.losses=0;}
+function finishNextSeason(state){processAiRetirements(state);advanceContractYear(state);state.season++;state.matchday=1;state.month=1;state.phase="regular";state.postseason=null;state.schedule=createLeagueSchedule(state.season);state.currentGame=null;state.seasonStats={batters:{},pitchers:{},fielders:{}};state.postseasonStats=null;state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));runAIClubManagement(state,{phase:"offseason"});state.wins=0;state.losses=0;}
 function settleEconomy(state,fixture,game){
  if(fixture.homeId===state.clubId){
   const wins=state.wins,losses=state.losses,winPct=(wins+losses)?wins/(wins+losses):.5;
@@ -75,7 +76,7 @@ function settleEconomy(state,fixture,game){
  }
 }
 function finishMonth(state){
- developPlayers(state);
+ developPlayers(state);settleAIClubFinances(state);runAIClubManagement(state,{phase:"monthly"});
  state.month=Math.min(12,Math.floor((state.matchday-1)/10)+1);
  const roster=state.players.filter(p=>p.clubId===state.clubId),payroll=roster.reduce((n,p)=>n+(state.contracts?.[p.id]?.salary||estimatePlayerSalary(p)),0);
  const sponsor=3500000+(state.fanbase*30);
