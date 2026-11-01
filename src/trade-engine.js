@@ -44,7 +44,7 @@ export function executeMultiPlayerTrade(state,{outgoingIds,incomingIds}){
  const moved=new Map([...outgoing.map(p=>[p.id,opponentId]),...incoming.map(p=>[p.id,state.clubId])]);
  state.players=state.players.map(p=>moved.has(p.id)?{...p,clubId:moved.get(p.id)}:p);
  repairTeamLineup(state,state.clubId);repairTeamLineup(state,opponentId);
- const record={season:state.season,matchday:state.matchday,fromTeam:state.clubId,toTeam:opponentId,outgoingIds:outgoing.map(p=>p.id),outgoingName:outgoing.map(p=>p.name).join("、"),incomingIds:incoming.map(p=>p.id),incomingName:incoming.map(p=>p.name).join("、"),outgoingValue:outValue,incomingValue:inValue,date:new Date().toISOString()};
+ const record={season:state.season,matchday:state.matchday,fromTeam:state.clubId,toTeam:opponentId,outgoingIds:outgoing.map(p=>p.id),outgoingId:outgoing.length===1?outgoing[0].id:null,outgoingName:outgoing.map(p=>p.name).join("、"),incomingIds:incoming.map(p=>p.id),incomingId:incoming.length===1?incoming[0].id:null,incomingName:incoming.map(p=>p.name).join("、"),outgoingValue:outValue,incomingValue:inValue,date:new Date().toISOString()};
  state.tradeHistory??=[];state.tradeHistory.push(record);
  return record;
 }
