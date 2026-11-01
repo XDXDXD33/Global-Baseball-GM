@@ -1,5 +1,6 @@
 import { LEAGUE, DEMO_PLAYERS, RATING_LABELS } from "./data.js";
-import { validateForeignLimit } from "./rules.js";
+import { validateForeignLimit, estimatePlayerAbility, estimatePlayerSalary } from "./rules.js";
+import { renderRosterTools, bindRosterTools } from "./player-tools.js";
 
 const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = "global-baseball-gm-save-v1";
@@ -29,8 +30,9 @@ function dashboard(){
  <div class="panel"><h3>目前名單摘要</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>資料類型</th></tr></thead><tbody>${roster.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td><span class="tag fake">虛擬示範</span></td></tr>`).join("")}</tbody></table></div></div>`;
 }
 function rosterPage(){
- const roster=state.players.filter(p=>p.clubId===state.clubId);
- return `<div class="panel"><h3>一軍球員名單 · ${roster.length} 人</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>角色</th><th>主要能力</th><th>資料</th></tr></thead><tbody>${roster.map(p=>{const ratings=Object.entries(p.ratings).slice(0,3).map(([k,v])=>`${RATING_LABELS[k]||k} ${v}`).join(" · ");return `<tr><td><b>${esc(p.name)}</b></td><td>${p.position}</td><td>${p.age}</td><td>${p.role}</td><td>${ratings}</td><td><span class="tag fake">虛擬示範</span></td></tr>`;}).join("")}</tbody></table></div><p class="field-help">目前是介面與資料結構測試用的虛擬示範球員，不是真實中職球員，也不代表正式能力評分。</p></div>`;
+ const roster=state.players.filter(p=>p.clubId===state.clubId),market={winPct:state.wins+state.losses?state.wins/(state.wins+state.losses):.5,fanbase:state.fanbase,averageSalary:state.averageSalary||1000000};
+ const rows=roster.map(p=>{const r=Object.entries(p.ratings||{}).filter(([,v])=>Number.isFinite(v)).slice(0,3).map(([k,v])=>k+" "+v).join(" · ")||"尚無能力資料";return `<tr><td><b>${esc(p.name)}</b><small class="sub-cell">${esc(p.id)}</small></td><td>${esc(p.position)}</td><td>${p.age??"?"}</td><td>${p.foreign?"洋將":"本土"}</td><td>${Math.round(estimatePlayerAbility(p))}</td><td>${Math.round((Number(p.confidence)||0)*100)}%</td><td>${esc(r)}</td><td>${p.dataKind==="real"?'<span class="tag real">真實資料</span>':'<span class="tag fake">虛擬球員</span>'}</td><td>${Math.round(estimatePlayerSalary(p,market)).toLocaleString()}</td><td><button class="button button-quiet button-small" data-release-player="${esc(p.id)}">釋出</button></td></tr>`;}).join("");
+ return `<div class="panel"><h3>球員名單 · ${roster.length} 人</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>類別</th><th>能力</th><th>信心</th><th>能力項目</th><th>資料</th><th>估計年薪</th><th>操作</th></tr></thead><tbody>${rows||'<tr><td colspan="10">目前沒有球員</td></tr>'}</tbody></table></div><p class="field-help">能力為 0-100 模擬值；信心反映證據完整度，不代表實力。薪資為遊戲估值。</p></div>${renderRosterTools(state,roster)}`;
 }
 function leaguePage(){
  return `<div class="panel"><h3>${state.season} CPBL 聯盟球隊</h3><div class="table-wrap"><table><thead><tr><th>球隊</th><th>城市</th><th>勝</th><th>敗</th><th>勝率</th></tr></thead><tbody>${LEAGUE.clubs.map(c=>`<tr><td><b>${c.name}</b>${c.id===state.clubId?' <span class="tag fake">我的球隊</span>':''}</td><td>${c.city}</td><td>${c.id===state.clubId?state.wins:0}</td><td>${c.id===state.clubId?state.losses:0}</td><td>${c.id===state.clubId&&state.wins+state.losses?(state.wins/(state.wins+state.losses)).toFixed(3):".000"}</td></tr>`).join("")}</tbody></table></div><p class="field-help">目前顯示聯盟球隊骨架，尚未開始正式賽程模擬。</p></div>`;
@@ -46,6 +48,7 @@ function render(){
  $("#page-content").innerHTML=({dashboard,roster:rosterPage,league:leaguePage,settings:settingsPage})[page]();
  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
  const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
+ if(page==="roster")bindRosterTools(state,persist,render);
 }
 function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="global-baseball-gm-save.json";a.click();URL.revokeObjectURL(url);}
 $("#new-career-btn").addEventListener("click",setup);
