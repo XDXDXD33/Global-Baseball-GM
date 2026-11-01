@@ -1,29 +1,17 @@
 # Player and historical data model
 
-## Non-negotiable provenance rules
-1. A real athlete record must have a stable source identifier or a documented identity-matching note.
-2. A missing rating is unknown, not zero and not an invitation to invent a factual value.
-3. Fictional generated athletes must be explicitly marked `fictional`.
-4. Estimated ratings must carry a method version and confidence level.
-5. Raw season statistics and game ratings are separate records.
-6. Store source URL/name, retrieval date, license, attribution requirements, and transformation notes for imported datasets.
+## Provenance
+Real athlete records require a stable source identifier or documented identity match. Missing ratings are unknown, not zero. Fictional athletes are explicitly marked. Estimated ratings carry method version and confidence. Preserve source, retrieval date, license, attribution and transformation notes.
 
-## Player record (planned)
-- id, canonicalName, aliases, birthDate (when reliably known), bats, throws, primaryPosition
-- identityStatus: verified | probable | unresolved
-- dataKind: real | fictional
-- seasons[]: leagueId, clubId, season, battingStats, pitchingStats, fieldingStats, sourceRefs[]
-- ratingsBySeason[]: ratingScale, attributes, methodVersion, confidence, evidence
-- careerStatus: active | retired | unknown
+## CSV import
+Required columns: `id,name,clubId,position,age,foreign,dataKind`. Optional: `role,identityStatus,source,confidence`, and ratings `contact,power,eye,avoidK,speed,stealing,fielding,arm,range,velocity,control,movement,stamina`.
+Club IDs: `brothers,lions,guardians,monkeys,dragons,hawks`. Positions: `SP,RP,P,C,1B,2B,3B,SS,LF,CF,RF,DH,OF`. Ratings use 0-100 and confidence 0-1. Quoted commas and escaped quotes are supported. Invalid rows and duplicates are skipped with feedback. Real players require a source value, which does not independently verify correctness or redistribution rights.
 
-## Rating scale
-The simulation stores 0-100 values. The scouting UI may display a 20-80 scale. These scales must not be conflated. Position-specific overall ratings are derived, never manually substituted for component ratings.
+## Ratings
+Position-aware weighted ratings ignore missing attributes and normalize remaining weights. Evidence confidence is separate from ability. The `cpbl-rating-v1` heuristic requires historical calibration before being treated as realistic.
 
-## Historical CPBL coverage
-Target: all players for whom reliable records can be obtained from 1990 onward. Coverage is an ingestion project, not a claim that the current seed data is complete. Handle historical club identities and name changes using separate club-era records.
+## Historical coverage
+Target reliable records available from 1990 onward. Historical club identities and name changes need separate club-era records.
 
-## Foreign player policy
-The franchise setting accepts an integer roster ceiling from 0 through 13. The game rules engine validates every signing and roster move against that setting. Real foreign-player ratings require adequate evidence; otherwise the game may create a fictional player inspired by broad league-level distributions, never impersonating a real athlete.
-
-## Licensing
-Publicly viewable information is not automatically licensed for bulk redistribution. Keep data adapters separate from the game client and only bundle data with permission for redistribution. Support user-imported CSV for datasets the user is entitled to use.
+## Foreign players and licensing
+The franchise setting accepts 0-13. Manual registration and CSV import enforce the current club's foreign-player limit. Never invent a real identity to fill data gaps. Public visibility is not a redistribution license; only bundle datasets whose terms permit redistribution.
