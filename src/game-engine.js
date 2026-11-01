@@ -173,21 +173,23 @@ function resolveInPlay(game,batter,pitcher,teamId){
  const contact=clamp(rating(batter,"contact")+(approach==="contact"?7:approach==="power"?-4:approach==="patient"?-2:0),0,100),power=clamp(rating(batter,"power")+(approach==="power"?8:approach==="contact"?-4:0),0,100),speed=rating(batter,"speed");
  const movement=clamp(effectivePitchRating(game,pitcher,"movement")+pitchModifiers(game.currentPA?.pitchType).movement,10,100);
  const fielders=game.lineups[teamOnField(game)].map(id=>game.players[id]).filter(p=>p&&p.position!=="DH");
- const defense=fielders.length?fielders.reduce((sum,p)=>sum+rating(p,"fielding")*.7+rating(p,"range")*.3,0)/fielders.length:50;
- const alignment=game.commands?.[teamOnField(game)]?.defenseAlignment||"standard";
- const defensiveAdjustment=alignment==="infieldIn"?-.009:alignment==="shift"?-.006:alignment==="deepOutfield"?.004:0;
+ const alignment=game.commands?.[teamOnField(game)]?.defenseAlignment||"standard",battedBall=random(game)<.56?"ground":"air";
+ const relevantFielders=fielders.filter(p=>battedBall==="air"?["LF","CF","RF","OF"].includes(p.position):["1B","2B","3B","SS","C"].includes(p.position));
+ const defensePool=relevantFielders.length?relevantFielders:fielders;
+ const defense=defensePool.length?defensePool.reduce((sum,p)=>sum+rating(p,"fielding")*.7+rating(p,"range")*.3,0)/defensePool.length:50;
+ const defensiveAdjustment=alignment==="infieldIn"&&battedBall==="ground"?-.018:alignment==="shift"&&battedBall==="ground"?-.012:alignment==="deepOutfield"&&battedBall==="air"?.002:0;
  const hitChance=clamp(.255+(contact-50)*.0025-(movement-50)*.0015-(defense-50)*.00055+defensiveAdjustment+(offense.aggressiveHitting==="yes"?.012:0)+(approach==="power"?-.008:approach==="contact"?.008:approach==="patient"?.002:0),.12,.39);
  if(random(game)<hitChance){
-  const hr=clamp(.035+(power-50)*.00125+(approach==="power"?.018:0),.005,.13),triple=clamp(.012+(speed-50)*.00045,.004,.035),double=clamp(.12+(power-50)*.0012,.06,.22),r=random(game);
+  const hr=battedBall==="air"?clamp(.035+(power-50)*.00125+(approach==="power"?.018:0),.005,.13):.001,triple=clamp(.012+(speed-50)*.00045+(battedBall==="air"?.008:0),.004,.04),double=clamp(.12+(power-50)*.0012+(battedBall==="air"?.02:0)+(alignment==="deepOutfield"?-.035:0),.04,.24),r=random(game);
   const type=r<hr?"HR":r<hr+triple?"3B":r<hr+triple+double?"2B":"1B";
   hit(game,batter,pitcher,teamId,type);
   log(game,batter.name+" 擊出"+({HR:"全壘打","3B":"三壘安打","2B":"二壘安打","1B":"一壘安打"}[type]));
  }else if(random(game)<clamp(.025-(defense-50)*.00045,.008,.05)){
-  const old=[...game.bases],flyBall=random(game)<.45,eligible=fielders.filter(p=>flyBall?["LF","CF","RF","OF"].includes(p.position):["1B","2B","3B","SS","C"].includes(p.position)),pool=eligible.length?eligible:fielders,fielder=pool[Math.floor(random(game)*Math.max(1,pool.length))];
+  const old=[...game.bases],flyBall=battedBall==="air",eligible=fielders.filter(p=>flyBall?["LF","CF","RF","OF"].includes(p.position):["1B","2B","3B","SS","C"].includes(p.position)),pool=eligible.length?eligible:fielders,fielder=pool[Math.floor(random(game)*Math.max(1,pool.length))];
   if(fielder)fieldingLine(game,fielder.id).E++;
   if(fielder)fieldingLine(game,fielder.id).E++;if(old[2])recordRun(game,teamId,old[2]);game.bases=[batter.id,old[0],old[1]];log(game,batter.name+" 上壘，"+(fielder?.name||"守備員")+" 發生守備失誤");
  }else{
-  const fly=random(game)<.45;
+  const fly=battedBall==="air";
   if(fly&&game.bases[2]&&game.outs<2){
    const runner=game.bases[2],fielder=pickFielder(game,teamOnField(game),["LF","CF","RF","OF"]);if(fielder)fieldingLine(game,fielder.id).PO++;game.bases[2]=null;recordRun(game,teamId,runner);
    statsFor(game.batterStats,batter.id).RBI++;chargeEarnedRun(game,pitcher.id,runner);
