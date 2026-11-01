@@ -107,3 +107,11 @@ test("starting pitcher follows the configured five-man rotation",()=>{
  assert.equal(first.pitcherId.brothers,lineups.brothers.rotation[0]);
  assert.equal(second.pitcherId.brothers,lineups.brothers.rotation[1]);
 });
+
+test("recent pitcher workload can trigger an early bullpen change",()=>{
+ const fixture={id:"workload",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const starter=lineups.brothers.rotation[0];
+ const g=createGame({fixture,players,lineups,seed:8,workload:{[starter]:180}});
+ advancePitch(g);
+ assert.notEqual(g.pitcherId.brothers,starter);
+});
