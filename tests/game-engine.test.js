@@ -147,3 +147,19 @@ test("pinch hitter is removed from future bench eligibility",()=>{
  assert.ok(g.substitutedOut.includes(old));
  assert.throws(()=>substituteBatter(g,"lions",replacement.id,old));
 });
+
+test("injured starter and hitter are excluded from a new game",()=>{
+ const fixture={id:"injury-filter",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const injuredHitter=lineups.brothers.lineup[0],injuredStarter=lineups.brothers.rotation[0];
+ const g=createGame({fixture,players,lineups,seed:16,injuries:{[injuredHitter]:{daysRemaining:4},[injuredStarter]:{daysRemaining:3}}});
+ assert.ok(!g.lineups.brothers.includes(injuredHitter));
+ assert.notEqual(g.pitcherId.brothers,injuredStarter);
+});
+test("postseason fixtures can continue beyond twelve innings",()=>{
+ const fixture={id:"extra",season:2026,matchday:121,phase:"postseason",round:"championship",homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:18});
+ g.inning=12;g.half="bottom";g.outs=2;g.score.brothers=0;g.score.lions=0;
+ const before=g.inning;
+ for(let i=0;i<12&&g.status==="live"&&g.inning===before;i++)advancePitch(g);
+ assert.ok(g.status==="live"||g.inning>12||g.result?.winnerId);
+});
