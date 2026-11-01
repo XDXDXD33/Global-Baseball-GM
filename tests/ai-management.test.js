@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createInitialLeagueRoster,buildDefaultLineup,createFreeAgentPool,createLeagueSchedule} from "../src/game-engine.js";
 import {LEAGUE} from "../src/data.js";
+import {advanceContractYear} from "../src/contract-engine.js";
 import {initializeContracts} from "../src/contract-engine.js";
 import {initializeAIClubFinances,runAIClubManagement,settleAIClubFinances,getAIClubSummary,acceptAITradeProposal,declineAITradeProposal} from "../src/ai-management.js";
 function makeState(){
@@ -91,4 +92,18 @@ test("AI does not generate trade proposals after the trade deadline",()=>{
  const state=prepareTradeState();state.matchday=91;
  runAIClubManagement(state);
  assert.equal((state.aiTradeProposals||[]).filter(x=>x.status==="pending").length,0);
+});
+
+test("AI clubs rebuild complete active rosters after a mass offseason contract expiry",()=>{
+ const state=makeState();
+ for(const p of state.players)if(p.clubId!=="brothers")state.contracts[p.id]={salary:500000,yearsRemaining:1};
+ advanceContractYear(state);
+ state.season++;state.matchday=1;
+ runAIClubManagement(state,{phase:"offseason"});
+ for(const club of LEAGUE.clubs.filter(c=>c.id!=="brothers")){
+  const roster=state.players.filter(p=>p.clubId===club.id);
+  assert.ok(roster.length>=25,club.id+" roster should be rebuilt");
+  assert.ok(roster.every(p=>state.contracts[p.id]?.yearsRemaining>=1));
+  assert.equal(new Set(roster.map(p=>p.id)).size,roster.length);
+ }
 });
