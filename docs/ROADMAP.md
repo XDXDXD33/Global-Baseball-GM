@@ -11,39 +11,55 @@
 - [x] Historical club-era mapping separate from current playable clubs
 - [x] Preserve raw batting, pitching, fielding and standings records
 - [x] Provenance, source notes, rate helpers and tests
-- [x] Online batch importer for 1990-2024 annual CSVs
+- [x] Sourced cross-era CPBL foreign-star index
 - [ ] Run full import in browser and audit all source years 1990-2024
 - [ ] Acquire verified and appropriately licensed 2025-2026 data
-- [x] Sourced cross-era CPBL foreign-star index
 - [ ] Calibrate real-player ratings against season and league context
 
-## Phase 3 - match engine
-- [x] 120-game-per-team CPBL round-robin schedule and standings
+## Phase 3 - match engine and postseason
+- [x] 120-game-per-team schedule, half-season standings and full-season standings
 - [x] Pitch-by-pitch and plate-appearance resolution
-- [x] Batter-pitcher matchup, pitcher fatigue, baserunners, defense, steals and bullpen decisions
+- [x] Batter-pitcher matchup, fatigue, baserunners, steals and bullpen decisions
 - [x] Same engine for manual games and quick simulation
-- [x] Player commands: batting approach, pitch selection, sacrifice bunt, manual steal and intentional walk
-- [x] Five-man starting rotation, cross-game pitcher workload and recovery
-- [x] Box scores, player statistics and game logs
-- [x] Pinch runners and defensive substitutions\n- [x] Balks, wild pitches, catcher interference and basic in-game injury events\n- [ ] Position-specific defensive alignment
-- [ ] Advanced fielding outcomes and official CPBL extra-inning runner rules\n- [x] Injury events, recovery timers and lineup availability\n- [x] Extra-inning postseason games, best-of-five semifinal and best-of-seven championship
+- [x] Batting approach, pitch selection, sacrifice bunt, manual steal and intentional walk
+- [x] Five-man rotation and cross-game pitcher workload
+- [x] Pinch hitters, pinch runners and defensive substitutions
+- [x] Balks, wild pitches, passed balls and catcher interference
+- [x] Fielding errors, putouts, assists, double plays and catcher fielding events
+- [x] Basic defensive alignment choices with ground-ball/air-ball effects
+- [x] Injury events, injury list, recovery countdown and unavailable-player filtering
+- [x] CPBL extra-inning runner starts on second from the 10th inning
+- [x] Correct automatic-runner earned-run treatment
+- [x] Regular-season 12-inning limit and tie result
+- [x] Postseason extra innings continue until a winner is decided
+- [x] CPBL half-season champion qualification and annual winning-percentage tiebreaker
+- [x] CPBL playoff series: five-game playoff, one-win advantage where applicable, seven-game championship
+- [x] CPBL home-field allocation and bye/starting-win rules
+- [x] Separate regular-season and postseason player statistics
+- [ ] Advanced pitch clock, rain delay, suspended-game continuation and replay challenge systems
+- [ ] Full player-by-player defensive positioning and defensive shift legality
 
-## Phase 4 - front-office simulation
-- [x] Lineup, starting rotation, batting strategy, base-running and pitcher substitution controls
-- [x] Ticket pricing, training/scouting facility upgrades, free-agent signing, roster limit and foreign-player cap
-- [x] Gate revenue, attendance, monthly payroll, sponsorship and maintenance settlement
-- [x] Monthly player development with age curve and user-selected training focus
-- [x] Contract negotiation, extensions, release compensation and contract expiry
-- [x] One-for-one player trades with AI valuation, lineup repair and foreign-player cap checks
-- [ ] Multi-player trades, AI roster construction and trade-deadline logic
-- [ ] Coaches, medical staff, scouting reports and draft/prospects
-- [ ] Club-level AI strategy and multi-year roster planning
+## Phase 4 - front-office simulation and contracts
+- [x] Lineup, rotation, batting strategy, base-running and pitcher substitution controls
+- [x] Ticket pricing, facility upgrades, payroll, gate revenue, sponsorship and maintenance
+- [x] Monthly player development with selected training focus and age curve
+- [x] Multi-year contracts generated for all active players
+- [x] Contract renewal negotiation with salary and term offers
+- [x] Free-agent salary/term offers, roster and foreign-player limits, signing bonus
+- [x] Player release with remaining-contract compensation
+- [x] Contract expiry at season rollover and AI contract renewal
+- [x] One-for-one player trades with AI valuation and roster repair
+- [ ] Multi-player trades, trade deadline and AI-initiated trade proposals
+- [ ] AI free-agent bidding and roster construction
+- [ ] Coaches, medical staff, advanced scouting reports and draft/prospects
+- [ ] Club-level AI strategy and long-term rebuilding/contending logic
 
 ## Phase 5 - long-term careers
 - [x] Age-aware development and decline
-- [ ] Injuries, retirement, draft and prospect generation
+- [x] Injury recovery and player availability
+- [ ] Retirement, draft and prospect generation
 - [ ] Player morale, chemistry and clubhouse events
-- [ ] Multi-season save migration and regression tests
+- [ ] Multi-season financial and statistical balance tests
 
 ## Phase 6 - historical data coverage
 - [ ] Identity reconciliation, source and license audit
