@@ -1,10 +1,56 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {parseCsv,resolveHistoricalTeam,inningsToNumber,battingRates,pitchingRates,importHistoryCsv,searchHistoricalPlayers,getHistoricalSeasonLines,detectHistoryFile} from "../src/history.js";
-test("CSV parser handles quoted commas and escaped quotes",()=>{const r=parseCsv('ID,Name\n1,"王, 小明"\n2,"陳""小陳"""');assert.equal(r[0].Name,"王, 小明");assert.equal(r[1].Name,'陳"小陳"');});
-test("historical teams retain eras and franchise lineage",()=>{assert.equal(resolveHistoricalTeam("兄弟",1990,"ACC").franchiseId,"brothers");assert.equal(resolveHistoricalTeam("味全",1990,"AAA").teamEraId,"dragons-1990");assert.equal(resolveHistoricalTeam("中信",2005,"AHH").franchiseId,"whales");assert.equal(resolveHistoricalTeam("中信兄弟",2024).teamEraId,"brothers-2014");assert.equal(resolveHistoricalTeam("三商虎",1995).franchiseId,"san_shang_tigers");});
-test("innings notation converts outs correctly",()=>{assert.equal(inningsToNumber("129.1"),129+1/3);assert.equal(inningsToNumber("67.2"),67+2/3);assert.equal(inningsToNumber("5.3"),null);});
-test("batting rate formulas use season totals",()=>{const r=battingRates({AB:100,H:30,TB:50,BB:10,IBB:2,HBP:1,SF:2});assert.equal(r.avg,.3);assert.ok(r.ops>0);});
-test("pitching rate formulas parse baseball innings",()=>{const r=pitchingRates({IP:"9.0",ER:3,H:9,BB:2,IBB:0});assert.equal(r.era,3);assert.equal(r.whip,11/9);});
-test("file detection supports folder structure and explicit names",()=>{assert.equal(detectHistoryFile("CPBL/battings/1990.csv").year,1990);assert.equal(detectHistoryFile("pitchings-2024.csv").kind,"pitching");assert.equal(detectHistoryFile("players.csv").kind,"players");});
-test("standings import is idempotent and uses historical team IDs",()=>{let h={players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]};const csv="Year,Team ID,Old ID,Team,Team Nickname,Win,Lose,Tie\\n1990,ACC,E01,兄弟象,兄弟,34,49,7";h=importHistoryCsv({path:"CPBL/standings.csv",text:csv},h).history;h=importHistoryCsv({path:"CPBL/standings.csv",text:csv},h).history;assert.equal(h.standings.length,1);assert.equal(h.standings[0].teamEraId,"brothers-1990");});\ntest("history import joins profile and yearly batting records",()=>{let h={players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]};const x=importHistoryCsv({path:"CPBL/battings/1990.csv",text:"ID,Name,Team ID,Team Name,G,PA,AB,RBI,R,H,1B,2B,3B,HR,TB,SO,SB,GIDP,SH,SF,BB,IBB,HBP,CS,GO,FO\n1,測試球員,ACC,兄弟象,90,378,322,58,58,94,52,21,3,18,175,58,7,3,0,4,47,6,5,5,55,115"},h);h=x.history;assert.equal(x.added,1);assert.equal(h.players["1"].seasons[0],1990);assert.equal(h.batting[0].franchiseId,"brothers");assert.equal(h.batting[0].teamEraId,"brothers-1990");assert.equal(searchHistoricalPlayers(h,"測試")[0].id,"1");assert.equal(getHistoricalSeasonLines(h,"1",1990).batting.length,1);});
+
+test("CSV parser handles quoted commas and escaped quotes",()=>{
+ const r=parseCsv('ID,Name\n1,"王, 小明"\n2,"陳""小陳"""');
+ assert.equal(r[0].Name,"王, 小明");
+ assert.equal(r[1].Name,'陳"小陳"');
+});
+test("historical teams retain eras and franchise lineage",()=>{
+ assert.equal(resolveHistoricalTeam("兄弟",1990,"ACC").franchiseId,"brothers");
+ assert.equal(resolveHistoricalTeam("味全",1990,"AAA").teamEraId,"dragons-1990");
+ assert.equal(resolveHistoricalTeam("中信",2005,"AHH").franchiseId,"whales");
+ assert.equal(resolveHistoricalTeam("中信兄弟",2024).teamEraId,"brothers-2014");
+ assert.equal(resolveHistoricalTeam("三商虎",1995).franchiseId,"san_shang_tigers");
+});
+test("innings notation converts outs correctly",()=>{
+ assert.equal(inningsToNumber("129.1"),129+1/3);
+ assert.equal(inningsToNumber("67.2"),67+2/3);
+ assert.equal(inningsToNumber("5.3"),null);
+});
+test("batting rate formulas use season totals",()=>{
+ const r=battingRates({AB:100,H:30,TB:50,BB:10,IBB:2,HBP:1,SF:2});
+ assert.equal(r.avg,.3);
+ assert.ok(r.ops>0);
+});
+test("pitching rate formulas parse baseball innings",()=>{
+ const r=pitchingRates({IP:"9.0",ER:3,H:9,BB:2,IBB:0});
+ assert.equal(r.era,3);
+ assert.equal(r.whip,11/9);
+});
+test("file detection supports folder structure and explicit names",()=>{
+ assert.equal(detectHistoryFile("CPBL/battings/1990.csv").year,1990);
+ assert.equal(detectHistoryFile("pitchings-2024.csv").kind,"pitching");
+ assert.equal(detectHistoryFile("players.csv").kind,"players");
+});
+test("standings import is idempotent and uses historical team IDs",()=>{
+ let h={players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]};
+ const csv="Year,Team ID,Old ID,Team,Team Nickname,Win,Lose,Tie\n1990,ACC,E01,兄弟象,兄弟,34,49,7";
+ h=importHistoryCsv({path:"CPBL/standings.csv",text:csv},h).history;
+ h=importHistoryCsv({path:"CPBL/standings.csv",text:csv},h).history;
+ assert.equal(h.standings.length,1);
+ assert.equal(h.standings[0].teamEraId,"brothers-1990");
+});
+test("history import joins profile and yearly batting records",()=>{
+ let h={players:{},batting:[],pitching:[],fielding:[],standings:[],importedFiles:[]};
+ const csv="ID,Name,Team ID,Team Name,G,PA,AB,RBI,R,H,1B,2B,3B,HR,TB,SO,SB,GIDP,SH,SF,BB,IBB,HBP,CS,GO,FO\n1,測試球員,ACC,兄弟象,90,378,322,58,58,94,52,21,3,18,175,58,7,3,0,4,47,6,5,5,55,115";
+ const x=importHistoryCsv({path:"CPBL/battings/1990.csv",text:csv},h);
+ h=x.history;
+ assert.equal(x.added,1);
+ assert.equal(h.players["1"].seasons[0],1990);
+ assert.equal(h.batting[0].franchiseId,"brothers");
+ assert.equal(h.batting[0].teamEraId,"brothers-1990");
+ assert.equal(searchHistoricalPlayers(h,"測試")[0].id,"1");
+ assert.equal(getHistoricalSeasonLines(h,"1",1990).batting.length,1);
+});
