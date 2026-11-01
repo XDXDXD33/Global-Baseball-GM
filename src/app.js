@@ -33,7 +33,7 @@ function load(){
    state.freeAgents=createFreeAgentPool(state.season||2026);state.tactics={};state.contracts={};state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];
    state.ticketPrice=350;state.trainingLevel=1;state.scoutingLevel=1;
   }
-  state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);state.injuries??={};state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;
+  state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);for(const p of state.players){const c=state.contracts[p.id];if(c&&c.yearsRemaining==null){c.yearsRemaining=Number(c.years)||1;c.expirySeason=state.season+c.yearsRemaining-1;c.status="active";}}state.injuries??={};state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;
   return true;
  }catch(e){console.warn("Save data could not be read",e);return false;}
 }
