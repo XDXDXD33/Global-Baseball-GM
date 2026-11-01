@@ -12,7 +12,7 @@ function scoreTable(game){
 }
 function currentPitcherOptions(game,state){
  const teamId=game.fixture.homeId===state.clubId?game.fixture.homeId:game.fixture.awayId;
- return state.players.filter(p=>p.clubId===teamId&&["SP","RP","P"].includes(p.position)&&p.id!==game.pitcherId[teamId]);
+ return state.players.filter(p=>p.clubId===teamId&&["SP","RP","P"].includes(p.position)&&p.id!==game.pitcherId[teamId]&&!(game.usedPitchers[teamId]||[]).includes(p.id));
 }
 export function renderGamePage(state){
  const fixture=fixtureForToday(state),standings=calculateStandings(state.schedule),completed=state.schedule.filter(g=>g.status==="final").length;
