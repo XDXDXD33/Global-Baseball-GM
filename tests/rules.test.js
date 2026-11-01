@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {validateForeignLimit,countForeignPlayers,canRegisterForeignPlayer,estimatePlayerAbility,calculateRatingConfidence,validatePlayerRecord,parsePlayerCsv,findDuplicatePlayer,estimatePlayerSalary} from "../src/rules.js";
+const base={id:"p1",name:"測試球員",clubId:"brothers",position:"CF",age:25,foreign:false,dataKind:"fictional",ratings:{contact:60,power:50,speed:70,fielding:60}};
+test("洋將上限 0-13",()=>{assert.equal(validateForeignLimit("13"),13);for(const v of [-1,14,1.5,"abc"])assert.throws(()=>validateForeignLimit(v));});
+test("洋將名額會阻止超額登錄",()=>{const p=[{foreign:true},{foreign:false}];assert.equal(countForeignPlayers(p),1);assert.equal(canRegisterForeignPlayer(p,1),false);assert.equal(canRegisterForeignPlayer(p,2),true);});
+test("打者能力採用有資料的加權屬性",()=>{assert.ok(estimatePlayerAbility(base)>50);assert.equal(estimatePlayerAbility({...base,ratings:{}}),50);});
+test("信心分數依來源與證據增加",()=>{const a=calculateRatingConfidence({dataKind:"fictional",ratings:{}}),b=calculateRatingConfidence({dataKind:"real",identityStatus:"verified",source:"official",seasons:[1,2,3],ratings:{contact:1,power:2,speed:3,fielding:4,eye:5}});assert.ok(b>a);});
+test("真實球員必須附來源且能力值不得超界",()=>{assert.equal(validatePlayerRecord({...base,dataKind:"real",source:""}).valid,false);assert.equal(validatePlayerRecord({...base,dataKind:"real",source:"official"}).valid,true);assert.equal(validatePlayerRecord({...base,ratings:{contact:101}}).valid,false);});
+test("CSV 支援引號內逗號",()=>{const x=parsePlayerCsv('id,name,clubId,position,age,foreign,dataKind,source,contact\np2,"王, 小明",brothers,CF,24,false,real,official,65');assert.equal(x.players[0].name,"王, 小明");assert.equal(x.players[0].ratings.contact,65);assert.equal(x.errors.length,0);});
+test("重複球員以 ID 或姓名球隊守位識別",()=>{assert.equal(findDuplicatePlayer({...base,id:"p2",name:"測試 球員"},[base]),true);});
+test("薪資估值考量能力與市場條件",()=>{const lo=estimatePlayerSalary({...base,ratings:{contact:30}},{winPct:.3,fanbase:1000,averageSalary:500000}),hi=estimatePlayerSalary({...base,ratings:{contact:90}},{winPct:.8,fanbase:20000,averageSalary:2000000});assert.ok(hi>lo);});
