@@ -75,7 +75,7 @@ test("intentional walk is available to the fielding team and forces runners",()=
  const fixture={id:"ibb",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
  const g=createGame({fixture,players,lineups,seed:5,userTeamId:"brothers"});
  const offense=g.lineups.lions;
- g.bases=[offense[0],offense[1],offense[2]];
+ g.bases=[offense[1],offense[2],offense[3]];
  const batter=offense[0],pitcher=g.pitcherId.brothers;
  issueIntentionalWalk(g,"brothers");
  assert.equal(g.batterStats[batter].BB,1);
