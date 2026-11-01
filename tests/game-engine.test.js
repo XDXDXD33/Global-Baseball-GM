@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createInitialLeagueRoster,buildDefaultLineup,createLeagueSchedule,createGame,advancePitch,simulateGame,calculateStandings,applyGameResult,changePitcher,createFreeAgentPool,setGameCommand,attemptStealBase,executeSacrificeBunt,issueIntentionalWalk,substituteRunner,substituteFielder,substituteBatter} from "../src/game-engine.js";
+import {createInitialLeagueRoster,buildDefaultLineup,createLeagueSchedule,createGame,advancePitch,simulateGame,calculateStandings,applyGameResult,changePitcher,createFreeAgentPool,setGameCommand,attemptStealBase,executeSacrificeBunt,issueIntentionalWalk,substituteRunner,substituteFielder,substituteBatter,placeCPBLExtraInningRunner} from "../src/game-engine.js";
 import {LEAGUE} from "../src/data.js";
 const players=createInitialLeagueRoster(42);
 const lineups=Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)]));
@@ -162,4 +162,23 @@ test("postseason fixtures can continue beyond twelve innings",()=>{
  const before=g.inning;
  for(let i=0;i<12&&g.status==="live"&&g.inning===before;i++)advancePitch(g);
  assert.ok(g.status==="live"||g.inning>12||g.result?.winnerId);
+});
+
+test("CPBL extra innings place the previous batting-order player on second base",()=>{
+ const fixture={id:"cpbl-extra-runner",season:2026,matchday:121,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:20});
+ g.inning=10;g.battingIndex.lions=4;
+ const expected=g.lineups.lions[3];
+ const runner=placeCPBLExtraInningRunner(g,"lions");
+ assert.equal(runner,expected);
+ assert.equal(g.bases[1],expected);
+ assert.ok(g.automaticRunnerIds.includes(expected));
+});
+test("defensive alignment command is only available to the fielding team",()=>{
+ const fixture={id:"defense-alignment",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:21,userTeamId:"brothers"});
+ setGameCommand(g,"brothers",{defenseAlignment:"infieldIn"});
+ assert.equal(g.commands.brothers.defenseAlignment,"infieldIn");
+ assert.throws(()=>setGameCommand(g,"lions",{defenseAlignment:"shift"}));
+ assert.throws(()=>setGameCommand(g,"brothers",{defenseAlignment:"illegal"}));
 });
