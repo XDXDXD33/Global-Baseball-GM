@@ -256,7 +256,7 @@ export function executeSacrificeBunt(game,teamId){
  if(game.outs>=2||(!game.bases[0]&&!game.bases[1]))throw new Error("需要一、二壘有跑者且未滿兩出局");
  const batter=currentBatter(game),pitcher=pitcherFor(game),defense=game.lineups[teamOnField(game)].map(id=>rating(game.players[id],"fielding")).reduce((a,b)=>a+b,0)/9;
  const success=clamp(.72+(rating(batter,"contact")-50)*.002-(defense-50)*.001,.48,.9),good=random(game)<success;
- const bs=statsFor(game.batterStats,batter.id),ps=statsFor(game.pitcherStats,pitcher.id);bs.PA++;bs.AB++;
+ const bs=statsFor(game.batterStats,batter.id),ps=statsFor(game.pitcherStats,pitcher.id);bs.PA++;if(!good)bs.AB++;
  if(good){
   bs.SH++;if(game.bases[2]){recordRun(game,teamId,game.bases[2]);bs.RBI++;ps.ER++;}
   game.bases=[null,game.bases[0],game.bases[1]];
