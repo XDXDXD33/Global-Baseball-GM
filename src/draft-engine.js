@@ -20,7 +20,7 @@ export function generateDraftClass(season=2027,count=30){
  return out;
 }
 export function startDraft(state,{count=30,rounds=3}={}){
- if(state.draft?.status==="active")throw new Error("目前已有進行中的選秀會");
+ if(state.draft?.status==="active"){let guard=0;while(state.draft.status==="active"&&guard++<state.draft.order.length*state.draft.rounds+2)aiPick(state);}
  state.minorLeague??=[];
  const order=LEAGUE.clubs.map(c=>c.id);
  state.draft={season:state.season,round:1,rounds:clamp(Math.floor(rounds),1,5),pickIndex:0,order,available:generateDraftClass(state.season,count),history:[],status:"active"};
