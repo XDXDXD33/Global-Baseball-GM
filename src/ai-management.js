@@ -1,6 +1,7 @@
 import {LEAGUE} from "./data.js";
 import {estimatePlayerAbility,estimatePlayerSalary} from "./rules.js";
 import {buildDefaultLineup} from "./game-engine.js";
+import {calculateTradeValue,executeMultiPlayerTrade} from "./trade-engine.js";
 
 const BAT_POS=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
 const PITCHER=p=>["SP","RP","P"].includes(p.position);
@@ -189,7 +190,62 @@ export function runAIClubManagement(state,{phase="monthly"}={}){
   finance.lastReview=state.matchday||0;
   changed.push(teamId);
  }
+ reviewAITradeProposals(state);
  return changed;
+}
+export function reviewAITradeProposals(state){
+ state.aiTradeProposals??=[];
+ const day=Number(state.matchday)||1;
+ if(state.phase!=="regular"||day>90||day<=1||((day-1)%20)!==0||state.currentGame?.status==="live")return [];
+ if(state.aiTradeProposals.filter(x=>x.status==="pending").length>=2)return [];
+ initializeAIClubFinances(state);
+ const userCfg=state.lineups?.[state.clubId]||{};
+ const userBench=teamRoster(state,state.clubId).filter(p=>!PITCHER(p)&&!(userCfg.lineup||[]).includes(p.id));
+ const created=[];
+ for(const club of LEAGUE.clubs){
+  if(club.id===state.clubId)continue;
+  const finance=state.aiClubFinances[club.id];
+  if(finance.lastTradeReview===day)continue;
+  finance.lastTradeReview=day;
+  const cfg=state.lineups?.[club.id]||{};
+  const aiBench=teamRoster(state,club.id).filter(p=>!PITCHER(p)&&!(cfg.lineup||[]).includes(p.id));
+  const pairs=[];
+  for(const userPlayer of userBench){
+   for(const aiPlayer of aiBench){
+    if(userPlayer.position!==aiPlayer.position)continue;
+    const userForeign=teamRoster(state,state.clubId).filter(p=>p.foreign&&p.id!==userPlayer.id).length+(aiPlayer.foreign?1:0);
+    const aiForeign=teamRoster(state,club.id).filter(p=>p.foreign&&p.id!==aiPlayer.id).length+(userPlayer.foreign?1:0);
+    if(userForeign>state.foreignLimit||aiForeign>state.foreignLimit)continue;
+    const uv=calculateTradeValue(userPlayer),av=calculateTradeValue(aiPlayer);
+    if(uv<av*.88||uv>av*1.12)continue;
+    const ageFit=finance.strategy==="rebuild"?Math.abs(age(userPlayer)-age(aiPlayer)):Math.abs(ability(userPlayer)-ability(aiPlayer));
+    pairs.push({userPlayer,aiPlayer,distance:Math.abs(uv-av)+ageFit*.15});
+   }
+  }
+  pairs.sort((a,b)=>a.distance-b.distance);
+  const pair=pairs[0];if(!pair)continue;
+  const proposal={id:"ai-trade-"+state.season+"-"+day+"-"+club.id,teamId:club.id,userPlayerId:pair.userPlayer.id,aiPlayerId:pair.aiPlayer.id,userPlayerName:pair.userPlayer.name,aiPlayerName:pair.aiPlayer.name,position:pair.userPlayer.position,userValue:calculateTradeValue(pair.userPlayer),aiValue:calculateTradeValue(pair.aiPlayer),season:state.season,matchday:day,status:"pending"};
+  state.aiTradeProposals.push(proposal);created.push(proposal);
+  report(state,club.id,"trade-offer",club.id+" 向本隊提出交易，願以 "+pair.aiPlayer.name+" 交換 "+pair.userPlayer.name);
+  break;
+ }
+ return created;
+}
+export function acceptAITradeProposal(state,proposalId){
+ const proposal=(state.aiTradeProposals||[]).find(x=>x.id===proposalId&&x.status==="pending");
+ if(!proposal)throw new Error("這筆 AI 交易提案已不存在或已處理");
+ if(proposal.season!==state.season||state.phase!=="regular"||(Number(state.matchday)||1)>90)throw new Error("交易提案已超過有效期間");
+ const result=executeMultiPlayerTrade(state,{outgoingIds:[proposal.userPlayerId],incomingIds:[proposal.aiPlayerId]});
+ proposal.status="accepted";proposal.resolvedMatchday=state.matchday;
+ report(state,proposal.teamId,"trade-accepted","本隊接受交易，"+proposal.aiPlayerName+" 加入本隊");
+ return result;
+}
+export function declineAITradeProposal(state,proposalId){
+ const proposal=(state.aiTradeProposals||[]).find(x=>x.id===proposalId&&x.status==="pending");
+ if(!proposal)throw new Error("這筆 AI 交易提案已不存在或已處理");
+ proposal.status="declined";proposal.resolvedMatchday=state.matchday;
+ report(state,proposal.teamId,"trade-declined","本隊婉拒 "+proposal.aiPlayerName+" 與 "+proposal.userPlayerName+" 的交易提案");
+ return proposal;
 }
 export function getAIClubSummary(state){
  initializeAIClubFinances(state);
