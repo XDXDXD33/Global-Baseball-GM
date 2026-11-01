@@ -100,3 +100,10 @@ test("quick simulation allows automatic bullpen management for the user team",()
  simulateGame(g);
  assert.notEqual(g.pitcherId.brothers,starter);
 });
+
+test("starting pitcher follows the configured five-man rotation",()=>{
+ const first=createGame({fixture:{id:"rotation-1",season:2026,matchday:1,homeId:"brothers",awayId:"lions"},players,lineups,seed:10});
+ const second=createGame({fixture:{id:"rotation-2",season:2026,matchday:2,homeId:"brothers",awayId:"lions"},players,lineups,seed:10});
+ assert.equal(first.pitcherId.brothers,lineups.brothers.rotation[0]);
+ assert.equal(second.pitcherId.brothers,lineups.brothers.rotation[1]);
+});
