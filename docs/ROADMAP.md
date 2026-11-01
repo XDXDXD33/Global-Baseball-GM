@@ -25,11 +25,8 @@
 - [x] Player commands: batting approach, pitch selection, sacrifice bunt, manual steal and intentional walk
 - [x] Five-man starting rotation, cross-game pitcher workload and recovery
 - [x] Box scores, player statistics and game logs
-- [ ] Pinch runners, defensive substitutions and position-specific defensive alignment
-- [ ] Balks, wild pitches, catcher interference and advanced fielding outcomes
-- [ ] Injury events and player availability
-- [ ] Extra-inning runner rules and official CPBL postseason rules
-- [ ] Postseason series and championship
+- [x] Pinch runners and defensive substitutions\n- [x] Balks, wild pitches, catcher interference and basic in-game injury events\n- [ ] Position-specific defensive alignment
+- [ ] Advanced fielding outcomes and official CPBL extra-inning runner rules\n- [x] Injury events, recovery timers and lineup availability\n- [x] Extra-inning postseason games, best-of-five semifinal and best-of-seven championship
 
 ## Phase 4 - front-office simulation
 - [x] Lineup, starting rotation, batting strategy, base-running and pitcher substitution controls
