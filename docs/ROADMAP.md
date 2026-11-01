@@ -33,7 +33,7 @@
 - [x] Ticket pricing, training/scouting facility upgrades, free-agent signing, roster limit and foreign-player cap
 - [x] Gate revenue, attendance, monthly payroll, sponsorship and maintenance settlement
 - [x] Monthly player development with age curve and user-selected training focus
-- [ ] Contract negotiation, extensions and release compensation
+- [x] Contract negotiation, extensions, release compensation and contract expiry
 - [x] One-for-one player trades with AI valuation, lineup repair and foreign-player cap checks
 - [ ] Multi-player trades, AI roster construction and trade-deadline logic
 - [ ] Coaches, medical staff, scouting reports and draft/prospects
