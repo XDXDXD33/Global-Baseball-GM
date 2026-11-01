@@ -7,6 +7,7 @@ import { createInitialLeagueRoster, buildDefaultLineup, createLeagueSchedule, cr
 import { renderLineupPage, bindLineupPage, renderOperationsPage, bindOperationsPage } from "./management-ui.js";
 import { renderGamePage, bindGamePage } from "./game-ui.js";
 import { initializeContracts } from "./contract-engine.js";
+import { initializeAIClubFinances,runAIClubManagement } from "./ai-management.js";
 
 const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = "global-baseball-gm-save-v1";
@@ -33,7 +34,7 @@ function load(){
    state.freeAgents=createFreeAgentPool(state.season||2026);state.tactics={};state.contracts={};state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];
    state.ticketPrice=350;state.trainingLevel=1;state.scoutingLevel=1;
   }
-  state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);for(const p of state.players){const c=state.contracts[p.id];if(c&&c.yearsRemaining==null){c.yearsRemaining=Number(c.years)||1;c.expirySeason=state.season+c.yearsRemaining-1;c.status="active";}}state.injuries??={};state.retiredPlayers??=[];if(state.currentGame){state.currentGame.injuries??=[];state.currentGame.automaticRunnerIds??=[];state.currentGame.fieldingStats??={};state.currentGame.unavailable??={};state.currentGame.substitutedOut??=[];state.currentGame.commands??={};}state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;
+  state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);for(const p of state.players){const c=state.contracts[p.id];if(c&&c.yearsRemaining==null){c.yearsRemaining=Number(c.years)||1;c.expirySeason=state.season+c.yearsRemaining-1;c.status="active";}}state.injuries??={};state.retiredPlayers??=[];if(state.currentGame){state.currentGame.injuries??=[];state.currentGame.automaticRunnerIds??=[];state.currentGame.fieldingStats??={};state.currentGame.unavailable??={};state.currentGame.substitutedOut??=[];state.currentGame.commands??={};}state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;state.aiClubReports??=[];if(!state.aiClubFinances){initializeAIClubFinances(state);runAIClubManagement(state,{phase:"preseason"});}
   return true;
  }catch(e){console.warn("Save data could not be read",e);return false;}
 }
@@ -46,7 +47,7 @@ function startCareer(e){
   e.preventDefault();
   const team=club($("#team-select").value);
   const players=createInitialLeagueRoster(2026);
-  state={version:2,leagueId:"cpbl",season:2026,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players,history:emptyHistory(),lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(2026),currentGame:null,freeAgents:createFreeAgentPool(2026),tactics:{},contracts:initializeContracts(players,2026),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString()};
+  state={version:2,leagueId:"cpbl",season:2026,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players,history:emptyHistory(),lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(2026),currentGame:null,freeAgents:createFreeAgentPool(2026),tactics:{},contracts:initializeContracts(players,2026),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString()};initializeAIClubFinances(state);runAIClubManagement(state,{phase:"preseason"});
   $("#career-dialog").close();$("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;persist();render();
 }
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
