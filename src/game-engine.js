@@ -237,6 +237,8 @@ export function simulateGame(game,maxPitches=2600){
 export function setGameCommand(game,teamId,command){
  if(game.status!=="live")throw new Error("比賽已結束");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能下達自己球隊的場上指令");
+ if(command?.battingApproach&&teamAtBat(game)!==teamId)throw new Error("只有本隊進攻時才能調整打者策略");
+ if(command?.pitchType&&teamOnField(game)!==teamId)throw new Error("只有本隊守備時才能選擇投球球種");
  const allowed={battingApproach:["balanced","contact","power","patient"],pitchType:["fastball","slider","curve","changeup"]};
  game.commands??={};game.commands[teamId]??={};
  for(const [key,value] of Object.entries(command||{})){
@@ -273,20 +275,22 @@ export function issueIntentionalWalk(game,teamId){
  log(game,"故意四壞保送："+batter.name);checkWalkoff(game);return game;
 }
 export function changePitcher(game,teamId,pitcherId){
- if(game.status!=="live")throw new Error("比賽已結束");
+ if(game.status!=="live"||teamOnField(game)!==teamId)throw new Error("只能在本隊守備時更換投手");
+ if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
  const p=game.players[pitcherId];if(!p||p.clubId!==teamId||!["SP","RP","P"].includes(p.position))throw new Error("只能更換為本隊可用投手");
  if(game.pitcherId[teamId]===pitcherId)throw new Error("該投手已在場上");
  if(game.usedPitchers[teamId]?.includes(pitcherId))throw new Error("該投手已經在本場比賽投過球");
  game.pitcherId[teamId]=pitcherId;game.usedPitchers[teamId].push(pitcherId);log(game,"投手更換："+p.name);return game;
 }
 export function substituteBatter(game,teamId,outPlayerId,newPlayerId){
- if(game.status!=="live"||game.currentPA)throw new Error("請在打席結束後進行代打");
+ if(game.status!=="live"||game.currentPA||teamAtBat(game)!==teamId)throw new Error("請在本隊進攻且打席結束後進行代打");
+ if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
  const lineup=game.lineups[teamId],idx=lineup.indexOf(outPlayerId),p=game.players[newPlayerId];
  if(idx<0||!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position))throw new Error("代打必須是本隊未上場的野手");
- if(lineup.includes(newPlayerId))throw new Error("該球員已在打序中");
- lineup[idx]=newPlayerId;log(game,"代打："+p.name);return game;
+ if(lineup.includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下，不能再次出賽");
+ lineup[idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(outPlayerId);log(game,"代打："+p.name);return game;
 }
-const CAN_DEFEND={C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"]};
+const CAN_DEFEND={C:["C"],"1B":["1B","3B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"],OF:["OF","LF","CF","RF"]};
 export function substituteRunner(game,teamId,baseIndex,newPlayerId){
  if(game.status!=="live"||teamAtBat(game)!==teamId)throw new Error("只有本隊進攻時才能更換代跑");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
