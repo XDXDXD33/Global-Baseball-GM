@@ -184,7 +184,7 @@ export function createGame({fixture,players,lineups,seed=1,tactics={},userTeamId
  const home=starter(fixture.homeId),away=starter(fixture.awayId);
  if(!home||!away)throw new Error("兩隊都需要至少一名先發投手");
  for(const id of [fixture.homeId,fixture.awayId])if(lineupFor(id).length<9)throw new Error("兩隊都需要至少九名可用打者");
- return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[0],[fixture.awayId]:[0]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},bullpens:{[fixture.homeId]:[...(lineups[fixture.homeId]?.bullpen||[])],[fixture.awayId]:[...(lineups[fixture.awayId]?.bullpen||[])]},usedPitchers:{[fixture.homeId]:[home.id],[fixture.awayId]:[away.id]},userTeamId,workload:{...workload},commands:{},autoManageUserTeam:false,pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
+ return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[0],[fixture.awayId]:[0]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},bullpens:{[fixture.homeId]:[...(lineups[fixture.homeId]?.bullpen||[])],[fixture.awayId]:[...(lineups[fixture.awayId]?.bullpen||[])]},usedPitchers:{[fixture.homeId]:[home.id],[fixture.awayId]:[away.id]},userTeamId,workload:{...workload},commands:{},substitutedOut:[],autoManageUserTeam:false,pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
 }
 function autoManagePitcher(game,teamId){
  if(game.userTeamId===teamId&&!game.autoManageUserTeam)return;const current=game.players[game.pitcherId[teamId]],ps=statsFor(game.pitcherStats,current.id),hook=game.tactics[teamId]?.bullpenHook||"normal",factor=hook==="quick" ? .95 : hook==="long"?1.7:1.35,limit=Math.max(55,rating(current,"stamina",50)*factor);if(ps.pitches+(game.workload?.[current.id]||0)<limit)return;const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
@@ -285,6 +285,27 @@ export function substituteBatter(game,teamId,outPlayerId,newPlayerId){
  if(idx<0||!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position))throw new Error("代打必須是本隊未上場的野手");
  if(lineup.includes(newPlayerId))throw new Error("該球員已在打序中");
  lineup[idx]=newPlayerId;log(game,"代打："+p.name);return game;
+}
+const CAN_DEFEND={C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"]};
+export function substituteRunner(game,teamId,baseIndex,newPlayerId){
+ if(game.status!=="live"||teamAtBat(game)!==teamId)throw new Error("只有本隊進攻時才能更換代跑");
+ if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
+ if(!Number.isInteger(baseIndex)||baseIndex<0||baseIndex>2||!game.bases[baseIndex])throw new Error("請選擇有跑者的壘包");
+ const oldId=game.bases[baseIndex],old=game.players[oldId],p=game.players[newPlayerId],idx=game.lineups[teamId].indexOf(oldId);
+ if(!p||p.clubId!==teamId||["SP","RP","P"].includes(p.position)||idx<0)throw new Error("代跑必須是本隊尚未上場的野手");
+ if(game.lineups[teamId].includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下");
+ game.bases[baseIndex]=newPlayerId;game.lineups[teamId][idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(oldId);
+ log(game,old.name+" 退場，"+p.name+" 擔任代跑");return game;
+}
+export function substituteFielder(game,teamId,outPlayerId,newPlayerId){
+ if(game.status!=="live"||game.currentPA||teamOnField(game)!==teamId)throw new Error("請在本隊守備且打席結束後更換守備球員");
+ if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
+ const lineup=game.lineups[teamId],idx=lineup.indexOf(outPlayerId),old=game.players[outPlayerId],p=game.players[newPlayerId];
+ if(idx<0||!old||old.position==="DH"||!p||p.clubId!==teamId||["SP","RP","P","DH"].includes(p.position))throw new Error("只能替換本隊場上的守備野手");
+ if(lineup.includes(newPlayerId)||game.substitutedOut?.includes(newPlayerId))throw new Error("該球員已上場或已被換下");
+ if(!(CAN_DEFEND[old.position]||[]).includes(p.position))throw new Error("替補球員不具備原守位的守備資格");
+ lineup[idx]=newPlayerId;game.substitutedOut??=[];game.substitutedOut.push(outPlayerId);
+ log(game,"守備替換："+old.name+" 由 "+p.name+" 接替");return game;
 }
 export function calculateStandings(schedule,teamIds=LEAGUE.clubs.map(c=>c.id)){
  return teamIds.map(teamId=>{
