@@ -223,7 +223,7 @@ export function advancePitch(game){
   pa.pitchType=pitchType;
   const mods=pitchModifiers(pitchType),control=clamp(effectivePitchRating(game,pitcher,"control")+mods.control,10,100),velocity=clamp(effectivePitchRating(game,pitcher,"velocity")+mods.velocity,10,100),movement=clamp(effectivePitchRating(game,pitcher,"movement")+mods.movement,10,100),approach=game.commands?.[teamId]?.battingApproach||"balanced",eye=rating(batter,"eye")+(approach==="patient"?8:approach==="power"?-3:0);
   const strikeProb=clamp(.605+(control-50)*.0017-(eye-50)*.0008,.43,.73);
-  if(r<.00035){result="CI";statsFor(game.batterStats,batter.id).CI++;forceAdvance(game,batter,pitcher,teamId);completePA(game,batter,teamId,"CI");log(game,batter.name+" 因捕手妨礙打擊上一壘");}
+  if(random(game)<.00035){result="CI";statsFor(game.batterStats,batter.id).CI++;forceAdvance(game,batter,pitcher,teamId);completePA(game,batter,teamId,"CI");log(game,batter.name+" 因捕手妨礙打擊上一壘");}
   else if(r<strikeProb){
    const action=random(game),contactChance=clamp(.19+(rating(batter,"contact")-50)*.0012+(rating(batter,"avoidK")-50)*.0007-(velocity-50)*.0013-(movement-50)*.00035,.07,.3);
    if(action<contactChance){
