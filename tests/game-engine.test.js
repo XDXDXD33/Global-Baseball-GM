@@ -65,8 +65,8 @@ test("sacrifice bunt advances a runner and records a plate appearance",()=>{
  g.bases[0]=runner;
  executeSacrificeBunt(g,"lions");
  assert.equal(g.batterStats[batter].PA,1);
- assert.equal(g.batterStats[batter].AB,1);
- assert.ok(g.batterStats[batter].SH===0||g.batterStats[batter].SH===1);
+ assert.equal(g.batterStats[batter].AB,0);
+ assert.equal(g.batterStats[batter].SH,1);
  assert.equal(g.bases[0],null);
  assert.equal(g.bases[1],runner);
  assert.equal(g.outs,1);
@@ -80,9 +80,10 @@ test("intentional walk is available to the fielding team and forces runners",()=
  issueIntentionalWalk(g,"brothers");
  assert.equal(g.batterStats[batter].BB,1);
  assert.equal(g.pitcherStats[pitcher].BB,1);
- assert.equal(g.bases[0],offense[3]);
+ assert.equal(g.bases[0],offense[0]);
  assert.equal(g.bases[1],offense[1]);
  assert.equal(g.bases[2],offense[2]);
+ assert.equal(g.score.lions,1);
 });
 test("manual steal attempt records either a steal or caught stealing",()=>{
  const fixture={id:"steal",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
