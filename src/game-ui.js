@@ -20,7 +20,7 @@ function boxScoreHtml(game){
 }
 function currentPitcherOptions(game,state){
  const teamId=game.fixture.homeId===state.clubId?game.fixture.homeId:game.fixture.awayId;
- return state.players.filter(p=>p.clubId===teamId&&["SP","RP","P"].includes(p.position)&&p.id!==game.pitcherId[teamId]&&!(game.usedPitchers[teamId]||[]).includes(p.id));
+ return state.players.filter(p=>p.clubId===teamId&&["SP","RP","P"].includes(p.position)&&p.id!==game.pitcherId[teamId]&&!(game.usedPitchers[teamId]||[]).includes(p.id)&&!(Number(state.injuries?.[p.id]?.daysRemaining||0)>0));
 }
 export function renderGamePage(state){
  const fixture=fixtureForToday(state),standings=calculateStandings(state.schedule),completed=state.schedule.filter(g=>g.status==="final").length;
@@ -29,7 +29,7 @@ export function renderGamePage(state){
  if(state.currentGame){
   const g=state.currentGame,s=gameSituation(g),userAtBat=g.half==="top"?g.fixture.awayId===state.clubId:g.fixture.homeId===state.clubId;
   const pitcherTeam=g.half==="top"?g.fixture.homeId:g.fixture.awayId,pitchingForUser=pitcherTeam===state.clubId,pitcherOptions=currentPitcherOptions(g,state);
-  const used=new Set(g.lineups[state.clubId]),bench=state.players.filter(p=>p.clubId===state.clubId&&!["SP","RP","P"].includes(p.position)&&!used.has(p.id)&&!g.substitutedOut?.includes(p.id));
+  const used=new Set(g.lineups[state.clubId]),bench=state.players.filter(p=>p.clubId===state.clubId&&!["SP","RP","P"].includes(p.position)&&!used.has(p.id)&&!g.substitutedOut?.includes(p.id)&&!(Number(state.injuries?.[p.id]?.daysRemaining||0)>0));
   const occupiedBases=[0,1,2].filter(i=>g.bases[i]),fielders=g.lineups[state.clubId].map(id=>g.players[id]).filter(p=>p&&p.position!=="DH"),defensiveBench=bench.filter(p=>p.position!=="DH");
   const activeBatter=g.players[g.lineups[state.clubId][g.battingIndex[state.clubId]%g.lineups[state.clubId].length]];
   return `<section class="panel game-score-panel"><div class="game-status">第 ${g.inning} 局 · ${g.half==="top"?"上半局":"下半局"} · ${g.status==="final"?"比賽結束":"LIVE"}</div><div class="game-score"><div><small>${esc(club(g.fixture.awayId).name)}</small><strong>${g.score[g.fixture.awayId]}</strong></div><span>:</span><div><small>${esc(club(g.fixture.homeId).name)}</small><strong>${g.score[g.fixture.homeId]}</strong></div></div>${scoreTable(g)}<div class="diamond-row"><span class="diamond-base ${s.bases[1]?"occupied":""}">二</span><span class="diamond-base ${s.bases[2]?"occupied":""}">三</span><span class="diamond-base ${s.bases[0]?"occupied":""}">一</span><span class="outs-label">出局數：${s.outs}</span></div><div class="game-matchup"><div><small>打者</small><b>${esc(s.batter)}</b></div><div><small>投手</small><b>${esc(s.pitcher)}</b></div><div><small>球數</small><b>${s.balls} - ${s.strikes}</b></div><div><small>總投球數</small><b>${g.pitchCount}</b></div></div></section>
