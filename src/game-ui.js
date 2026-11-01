@@ -54,7 +54,7 @@ function finishMonth(state){
 export function bindGamePage(state,persist,render){
  const start=()=>{
   const fixture=fixtureForToday(state);if(!fixture)return;
-  state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics});
+  state.currentGame=createGame({fixture,players:state.players,lineups:state.lineups,seed:fixture.id.split("").reduce((n,c)=>n+c.charCodeAt(0),state.season),tactics:state.tactics,userTeamId:state.clubId});
   persist();render();
  };
  document.querySelector("#start-game")?.addEventListener("click",start);
