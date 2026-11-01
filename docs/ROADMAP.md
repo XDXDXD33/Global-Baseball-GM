@@ -50,7 +50,7 @@
 - [x] Contract expiry at season rollover and AI contract renewal
 - [x] One-for-one player trades with AI valuation and roster repair
 - [x] Multi-player trades (up to three players per side)
-- [ ] Trade deadline and AI-initiated trade proposals
+- [x] Trade deadline enforcement\n- [ ] AI-initiated trade proposals
 - [ ] AI free-agent bidding and roster construction
 - [ ] Coaches, medical staff, advanced scouting reports and draft/prospects
 - [ ] Club-level AI strategy and long-term rebuilding/contending logic
