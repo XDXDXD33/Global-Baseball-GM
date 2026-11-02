@@ -7,16 +7,45 @@ const PROSPECTS=[
  {id:"overseas-maki",name:"牧秀悟",english:"Shugo Maki",league:"NPB",team:"橫濱 DeNA 海灣之星",country:"日本",position:"2B",age:28,season:2026,stats:{G:108,PA:474,AB:420,H:119,HR:30,RBI:75,SB:2,BB:41,SO:85,AVG:.283,OBP:.363,SLG:.564,OPS:.927},defense:78,arm:74,range:75,marketDemand:65000000,source:"https://npb.jp/bis/eng/players/13115153.html"},
  {id:"overseas-kim",name:"金倒永",english:"Kim Do-yeong",league:"KBO",team:"起亞虎",country:"韓國",position:"3B",age:23,season:2026,stats:{G:135,PA:593,AB:496,H:153,HR:45,RBI:118,SB:11,BB:85,SO:103,AVG:.308,OBP:.413,SLG:.647,OPS:1.060},defense:82,arm:79,range:88,marketDemand:110000000,source:"https://www.koreabaseball.com/Record/Retire/Hitter.aspx?playerId=52605"}
 ];
-function estimateRatings(p){
- const s=p.stats,pa=Math.max(1,s.PA||s.AB||1),avg=s.AVG??(s.AB?s.H/s.AB:.25),ops=s.OPS??((s.OBP||.32)+(s.SLG||.4)),hrRate=(s.HR||0)/pa;
- const scale={MLB:1,NPB:.94,KBO:.91}[p.league]||.9;
- const contact=clamp(44+(avg-.25)*190*scale),power=clamp(45+(ops-.7)*100+hrRate*160),eye=clamp(43+((s.BB||0)/pa)*190+((s.OBP||.32)-.32)*55),speed=clamp(45+(s.SB||0)*.7+(p.league==="KBO"?2:0));
- const avoidK=clamp(72-((s.SO||0)/pa)*95);
- // Public season batting lines do not provide a consistent cross-league defensive metric.
- // Fielding, arm and range are scouting estimates, not official grades.
- return {contact:Math.round(contact),power:Math.round(power),eye:Math.round(eye),avoidK:Math.round(avoidK),speed:Math.round(speed),stealing:Math.round(clamp(40+(s.SB||0)*1.1)),fielding:p.defense,arm:p.arm,range:p.range};
+
+// Translate each league's production into an estimated 600-PA CPBL season.
+// These are game-balance estimates, not claims that a player would certainly
+// reproduce the projected line after changing leagues.
+const CPBL_TRANSLATION={MLB:{power:1.75,avg:.018,ops:.035},NPB:{power:1.28,avg:.012,ops:.025},KBO:{power:1.18,avg:.01,ops:.02}};
+function projectCPBLSeason(p){
+ const s=p.stats,pa=Math.max(1,s.PA||s.AB||1),f=CPBL_TRANSLATION[p.league]||{power:1.1,avg:.008,ops:.015};
+ const projectedPA=600,hr=Math.round((s.HR||0)/pa*projectedPA*f.power);
+ const hits=Math.round((s.H||0)/Math.max(1,s.AB||pa)*projectedPA*f.power);
+ const avg=clamp((s.AVG??.25)+f.avg,.2,.42)/100; // converted below to a baseball rate
+ const battingAverage=Number(((s.AVG??.25)+f.avg).toFixed(3));
+ const obp=Number(Math.min(.52,(s.OBP??.32)+f.ops*.55).toFixed(3));
+ const slg=Number(Math.min(.8,(s.SLG??.4)+f.ops*1.25).toFixed(3));
+ const ops=Number((obp+slg).toFixed(3));
+ const sb=Math.round((s.SB||0)/pa*projectedPA*1.08);
+ const rbi=Math.round((s.RBI||0)/pa*projectedPA*f.power);
+ return {G:120,PA:projectedPA,AB:Math.round(projectedPA*.88),H:hits,HR:hr,RBI:rbi,SB:sb,AVG:battingAverage,OBP:obp,SLG:slg,OPS:ops};
+}
+function estimateRatings(p,projection){
+ const s=p.stats,pa=Math.max(1,s.PA||s.AB||1),hr=projection.HR;
+ const contact=clamp(82+(projection.AVG-.25)*180);
+ const power=clamp(80+(hr-25)*.55);
+ const eye=clamp(80+(projection.OBP-.33)*150);
+ const avoidK=clamp(90-Math.max(0,(s.SO||0)/pa-.15)*100);
+ const projectedSB=projection.SB;
+ const speed=clamp(70+projectedSB*.8),stealing=clamp(68+projectedSB*.9);
+ // Defensive grades remain scouting estimates; hitting grades reflect the translated CPBL projection.
+ return {contact:Math.round(contact),power:Math.round(power),eye:Math.round(eye),avoidK:Math.round(avoidK),speed:Math.round(speed),stealing:Math.round(stealing),fielding:p.defense,arm:p.arm,range:p.range};
+}
+function estimateCPBLOverall(p,projection){
+ // 20 HR is already elite in the current CPBL environment. A 50-HR projection
+ // therefore belongs in the 90+ superstar tier, not the ordinary-import tier.
+ return Math.round(clamp(75+(projection.HR-20)*.5+(projection.OPS-.7)*20+(projection.AVG-.25)*40,70,99));
 }
 export function createOverseasMarket(){
- return PROSPECTS.map(p=>{const ratings=estimateRatings(p);return {...p,clubId:null,foreign:true,nationality:p.country,country:p.country,dataKind:"real",identityStatus:"verified",confidence:.9,source:"海外聯賽 "+p.season+" 球季公開成績換算；守備／臂力／範圍為遊戲估值",sourceUrl:p.source,externalStats:{...p.stats},ratings,marketDemand:p.marketDemand,rosterLevel:"market",marketType:"overseas",estimatedCPBLAbility:Math.round(estimatePlayerAbility({position:p.position,ratings}))};});
+ return PROSPECTS.map(p=>{
+  const projectedCPBLStats=projectCPBLSeason(p),ratings=estimateRatings(p,projectedCPBLStats);
+  const estimatedCPBLAbility=estimateCPBLOverall(p,projectedCPBLStats);
+  return {...p,clubId:null,foreign:true,nationality:p.country,dataKind:"real",identityStatus:"verified",confidence:.9,source:"海外聯賽 "+p.season+" 球季公開成績換算；CPBL 成績為 600 PA 情境推估，守備／臂力／範圍為遊戲估值",sourceUrl:p.source,externalStats:{...p.stats},projectedCPBLStats,ratings,estimatedCPBLAbility,marketDemand:p.marketDemand,rosterLevel:"market",marketType:"overseas"};
+ });
 }
 export const OVERSEAS_MARKET_PROFILES=PROSPECTS.map(p=>({id:p.id,name:p.name,league:p.league,season:p.season,source:p.source}));
