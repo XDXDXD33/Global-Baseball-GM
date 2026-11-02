@@ -208,7 +208,7 @@ function resolveInPlay(game,batter,pitcher,teamId){
 }
 function completePA(game,batter,teamId,kind){
  const bs=statsFor(game.batterStats,batter.id);bs.PA++;
- const fieldingTeam=teamOnField(game),activePitcher=game.pitcherId[fieldingTeam];
+ const fieldingTeam=teamOnField(game),activePitcher=game.currentPA?.pitcherId||game.pitcherId[fieldingTeam];
  game.pitcherBattersFaced??={};game.pitcherBattersFaced[activePitcher]=(game.pitcherBattersFaced[activePitcher]||0)+1;
  if(!["BB","HBP","SF","CI"].includes(kind)&&game.lastPAResult!=="SF")bs.AB++;
  game.lastPAResult=null;game.battingIndex[teamId]=(game.battingIndex[teamId]+1)%game.lineups[teamId].length;
@@ -327,8 +327,8 @@ export function issueIntentionalWalk(game,teamId){
 }
 export function changePitcher(game,teamId,pitcherId){
  if(game.status!=="live"||teamOnField(game)!==teamId)throw new Error("只能在本隊守備時更換投手");
- if(game.currentPA)throw new Error("請等目前打席結束後再更換投手");
  const currentId=game.pitcherId[teamId],injured=game.injuries.some(x=>x.playerId===currentId);
+ if(game.currentPA&&!injured)throw new Error("請等目前打席結束後再更換投手");
  if(!injured&&(game.pitcherBattersFaced?.[currentId]||0)<3)throw new Error("目前投手尚未面對滿三名打者，除非投手受傷，否則不能提前換投。");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
  const p=game.players[pitcherId];if(!p||p.clubId!==teamId||!["SP","RP","P"].includes(p.position))throw new Error("只能更換為本隊可用投手");if(Number(game.unavailable?.[pitcherId]?.daysRemaining||0)>0)throw new Error("該投手仍在傷兵名單中");
