@@ -32,7 +32,7 @@ test("applying best roster only moves owned players between first team and farm"
  assert.equal(s.lineups.brothers.lineup.length,9);
  assert.equal(s.lineups.brothers.rotation.length,4);
  assert.equal(s.lineups.brothers.bullpen.length,9);
- assert.deepEqual(new Set(s.players.filter(p=>p.clubId==="brothers").map(p=>p.id)),before);
+ assert.deepEqual(new Set([...s.players,...s.minorLeague].filter(p=>p.clubId==="brothers").map(p=>p.id)),before);
  assert.equal(JSON.stringify(s.freeAgents),freeBefore);
  assert.equal(JSON.stringify(s.contracts),contractsBefore);
 });
