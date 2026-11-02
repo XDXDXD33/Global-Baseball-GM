@@ -50,10 +50,10 @@ function ratingsFromStats(bat,pit,field){
  if(pit){
   const ip=number(pit.IP?.replace?.(/(\d)\.([12])$/,(m,a,b)=>String(Number(a)+Number(b)/3))||pit.IP);
   const era=ip>0?number(pit.ER)*9/ip:4.5,whip=ip>0?(number(pit.H)+number(pit.BB)+number(pit.IBB))/ip:1.4,k9=ip>0?number(pit.SO)*9/ip:7;
-  r.velocity=clamp(42+k9*3.2);r.control=clamp(92-whip*23);r.movement=clamp(88-era*7);r.stamina=clamp(48+number(pit.GS)*1.8);r.fielding=clamp(48+number(field?.PO)*.08);
+  r.velocity=clamp(42+k9*3.2);r.control=clamp(92-whip*23);r.movement=clamp(88-era*7);r.stamina=clamp(48+number(pit.GS)*1.8);const chances=number(field?.PO)+number(field?.A),errors=number(field?.E),games=number(field?.G)||1;r.fielding=clamp(50+(chances/games-1.8)*4-errors/games*8);r.arm=clamp(45+number(field?.A)/games*.25);r.range=clamp(48+number(field?.PO)/games*.3-errors/games*4);
  }else if(bat){
   const ab=number(bat.AB),avg=ab?number(bat.H)/ab:.23,pa=number(bat.PA)||ab||1,hr=number(bat.HR),bb=number(bat.BB),sb=number(bat.SB);
-  r.contact=clamp(32+avg*115);r.power=clamp(36+hr*1.25);r.eye=clamp(35+bb/pa*210);r.speed=clamp(42+sb*.9);r.fielding=clamp(48+number(field?.PO)*.12-number(field?.E)*1.5);r.arm=clamp(48+number(field?.A)*.08);
+  r.contact=clamp(32+avg*115);r.power=clamp(36+hr*1.25);r.eye=clamp(35+bb/pa*210);r.speed=clamp(42+sb*.9);const chances=number(field?.PO)+number(field?.A),errors=number(field?.E),games=number(field?.G)||1;r.fielding=clamp(52+(chances/games-2.2)*4.5-errors/games*9);r.arm=clamp(46+number(field?.A)/games*.35);r.range=clamp(48+number(field?.PO)/games*.4-errors/games*5);
  }else{
   r.contact=45;r.power=42;r.eye=45;r.speed=45;r.fielding=clamp(50-number(field?.E)*1.5);
  }
