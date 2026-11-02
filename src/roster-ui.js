@@ -15,7 +15,7 @@ export function renderRosterPage(state,getClub,escapeHtml){
   </tr>`;
  }).join("");
  const c=getClub(state.clubId);
- return `<section class="panel"><div class="panel-heading-row"><div><h3>球員名單 · <span id="roster-visible-count">${roster.length}</span> / ${roster.length} 人</h3><p class="field-help">點擊表格欄位標題即可切換升冪／降冪排序。篩選條件可同時使用。</p></div></div>
+ return `<section class="panel"><div class="panel-heading-row"><div><h3>球員名單 · ${roster.length} 人</h3><p class="field-help">目前顯示 <span id="roster-visible-count">${roster.length}</span> / ${roster.length} 人。點擊表格欄位標題即可切換升冪／降冪排序，篩選條件可同時使用。</p></div></div>
  <div class="roster-filters">
   <label>搜尋球員<input id="roster-search" type="search" placeholder="輸入球員姓名"></label>
   <label>國籍<select id="roster-nationality"><option value="">全部國籍</option>${nationalities.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label>
