@@ -155,6 +155,15 @@ function starPage(){return renderStarMarket(state.history,starSeason);}
 function lineupPage(){return renderLineupPage(state);}
 function operationsPage(){return renderOperationsPage(state);}
 function gamesPage(){return renderGamePage(state);}
+function rankingsPage(){
+ const players=state.players.filter(p=>p.clubId===state.clubId),batters=Object.entries(state.seasonStats?.batters||{}),pitchers=Object.entries(state.seasonStats?.pitchers||{});
+ const table=(title,rows,cols)=>`<section class="panel"><h3>${title}</h3><div class="table-wrap"><table><thead><tr>${cols.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${cols.length}">目前尚無統計資料</td></tr>`}</tbody></table></div></section>`;
+ const name=id=>esc(state.players.find(p=>p.id===id)?.name||id);
+ const ratingRows=players.map(p=>[p,Math.round(estimatePlayerAbility(p))]).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([p,v],i)=>[`#${i+1}`,esc(p.name),p.position,v]);
+ const batting=(key,label)=>batters.map(([id,s])=>({id,s,rate:key==="AVG"?(s.AB?(s.H||0)/s.AB:0):Number(s[key]||0)})).filter(x=>key!=="AVG"||x.s.AB>=10).sort((a,b)=>b.rate-a.rate).slice(0,20).map((x,i)=>[`#${i+1}`,name(x.id),x.s.AB||0,x.s.H||0,key==="AVG"?x.rate.toFixed(3):x.rate]);
+ const pitching=(key,label)=>pitchers.map(([id,s])=>({id,s,rate:key==="ERA"?(s.outs?((s.ER||0)*27/s.outs):99):Number(s[key]||0)})).filter(x=>key!=="ERA"||x.s.outs>=9).sort((a,b)=>key==="ERA"?a.rate-b.rate:b.rate-a.rate).slice(0,20).map((x,i)=>[`#${i+1}`,name(x.id),Math.floor((x.s.outs||0)/3)+`.${(x.s.outs||0)%3}`,x.s.H||0,x.s.K||0,key==="ERA"?x.rate.toFixed(2):x.rate]);
+ return `<section class="panel"><h3>球員能力排行榜</h3><p class="field-help">依目前球團球員能力估值排序。</p>${table("綜合能力",ratingRows,["排名","球員","守位","能力"])}</section>${table("打擊率 TOP 20",batting("AVG","AVG"),["排名","球員","打數","安打","打擊率"])}${table("全壘打 TOP 20",batting("HR","HR"),["排名","球員","打數","安打","全壘打"])}${table("打點 TOP 20",batting("RBI","RBI"),["排名","球員","打數","安打","打點"])}${table("投手三振 TOP 20",pitching("K","K"),["排名","投手","局數","被安打","三振","三振數"])}${table("投手防禦率 TOP 20",pitching("ERA","ERA"),["排名","投手","局數","被安打","三振","ERA"])}`;
+}
 function settingsPage(){
  return `<div class="panel"><h3>聯盟規則</h3><div class="setting-row"><div><span>聯盟</span><small>第一個可玩版本以 CPBL 為核心</small></div><b>中華職棒</b></div><div class="setting-row"><div><span>洋將名額上限</span><small>開局自訂，允許 0 至 13 人</small></div><b>${state.foreignLimit} 人</b></div><div class="setting-row"><div><span>球季賽程</span><small>六隊循環賽，每隊 120 場</small></div><b>360 場</b></div><div class="setting-row"><div><span>比賽模式</span><small>逐球操作、逐打席操作、快速模擬共用引擎</small></div><b>Live + Sim</b></div></div><div class="panel"><h3>存檔管理</h3><p class="field-help">球團經營進度儲存在此瀏覽器。歷史資料另存 IndexedDB。建議定期匯出 JSON 備份。</p><button id="export-btn" class="button button-quiet">匯出存檔 JSON</button></div>`;
 }
@@ -162,12 +171,12 @@ function render(){
  if(!state)return;
  if(page==="operations"&&state.foreignMarketSeason!==state.season){state.foreignMarket=buildHistoricalForeignMarket(state.history||emptyHistory(),state.season,state.players,state.season,state.clubId);state.foreignMarketSeason=state.season;}
  $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
- const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",settings:"聯盟設定"};
+ const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",rankings:"球員排行榜",settings:"聯盟設定"};
  $("#page-title").textContent=titles[page]||"球團總覽";$("#season-label").textContent=state.season+" 球季";
  try{
   // Build the page registry inside the guarded block so a missing renderer
   // cannot abort the entire app before the recovery UI is available.
-  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,settings:settingsPage};
+  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,rankings:rankingsPage,settings:settingsPage};
   $("#page-content").innerHTML=(pages[page]||dashboard)();
  }catch(error){
   console.error("Page render failed:",error);
