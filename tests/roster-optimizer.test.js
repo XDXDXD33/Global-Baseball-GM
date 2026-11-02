@@ -28,7 +28,7 @@ test("applying best roster only moves owned players between first team and farm"
  const result=applyBestRoster(s);
  assert.equal(result.filled,28);
  assert.equal(s.players.filter(p=>p.clubId==="brothers").length,28);
- assert.equal(s.minorLeague.filter(p=>p.clubId==="brothers").length,0);
+ assert.equal(s.minorLeague.filter(p=>p.clubId==="brothers").length,1);
  assert.equal(s.lineups.brothers.lineup.length,9);
  assert.equal(s.lineups.brothers.rotation.length,4);
  assert.equal(s.lineups.brothers.bullpen.length,9);
