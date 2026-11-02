@@ -39,6 +39,13 @@ export function bindLineupPage(state,persist,render){
   persist();render();
  });
 }
+export function renderFreeAgentsPage(state){
+ const market=state.freeAgents||[];
+ return `<section class="panel"><div class="panel-heading-row"><div><h3>自由球員市場</h3><p class="field-help">瀏覽可簽約球員，調整年薪與合約年限後直接提出合約。</p></div><span class="tag real">${market.length} 位待簽約</span></div><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>本土／洋將</th><th>能力</th><th>估計年薪</th><th>簽約條件</th></tr></thead><tbody>${market.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td>${p.foreign?"洋將":"本土"}</td><td>${Math.round(estimatePlayerAbility(p))}</td><td>${Math.round(estimatePlayerSalary(p)).toLocaleString()}</td><td><form class="free-agent-offer" data-player-id="${esc(p.id)}"><input name="salary" type="number" min="100000" step="50000" value="${Math.round(contractDemand(p)*1.05)}" aria-label="自由球員年薪"><select name="years" aria-label="合約年限">${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===2?"selected":""}>${n} 年</option>`).join("")}</select><button class="button button-quiet button-small" type="submit">提出簽約</button></form></td></tr>`).join("")||'<tr><td colspan="7">目前沒有自由球員</td></tr>'}</tbody></table></div><p id="free-agent-result" class="field-help" aria-live="polite"></p></section>`;
+}
+export function bindFreeAgentsPage(state,persist,render){
+ document.querySelectorAll(".free-agent-offer").forEach(form=>form.addEventListener("submit",e=>{e.preventDefault();const d=new FormData(form);try{signFreeAgent(state,{playerId:form.dataset.playerId,years:Number(d.get("years")),salary:Number(d.get("salary"))});persist();render();}catch(error){const out=document.querySelector("#free-agent-result");if(out)out.textContent="簽約未成立："+error.message;}}));
+}
 export function renderTradePage(state){
  const roster=state.players.filter(p=>p.clubId===state.clubId),opponents=LEAGUE.clubs.filter(c=>c.id!==state.clubId);
  const outgoing=roster.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${p.position} · ${Math.round(calculateTradeValue(p))} 分</option>`).join("");
