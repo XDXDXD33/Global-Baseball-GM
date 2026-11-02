@@ -5,7 +5,7 @@ export function calculateBestRoster(state,teamId=state.clubId){
  const active=(state.players||[]).filter(p=>p.clubId===teamId),farm=(state.minorLeague||[]).filter(p=>p.clubId===teamId),free=state.freeAgents||[];
  const pool=[...active,...farm,...free],used=new Set(),selected=[],shortages=[];let selectedForeign=0;
  for(const [group,count,match] of GROUPS){
-  const choices=pool.filter(p=>match(p)&&!used.has(p.id)&&(!p.foreign||selectedForeign<Number(state.foreignLimit||0))).sort((a,b)=>(Number(!!a.foreign)-Number(!!b.foreign))||(estimatePlayerAbility(b)-estimatePlayerAbility(a)));
+  const choices=pool.filter(p=>match(p)&&!used.has(p.id)&&(!p.foreign||selectedForeign<Number(state.foreignLimit||0))).sort((a,b)=>(estimatePlayerAbility(b)-estimatePlayerAbility(a))||(Number(!!a.foreign)-Number(!!b.foreign))||(Number(a.age)||27)-(Number(b.age)||27));
   const chosen=choices.slice(0,count);chosen.forEach(p=>{used.add(p.id);if(p.foreign)selectedForeign++;selected.push({...p,optimizerGroup:group});});
   for(let i=chosen.length;i<count;i++){const id="best-roster-"+teamId+"-"+(state.season||2026)+"-"+group+"-"+i;const generated=generateFictionalPlayer({id,clubId:null,position:group==="OF"?"CF":group,seed:id,country:"TW",rosterLevel:"market"});generated.name=generated.name+"（補強）";generated.source="自動最佳陣容補位生成 · 虛構球員";generated.dataKind="fictional";generated.foreign=false;generated.rosterLevel="market";pool.push(generated);used.add(generated.id);selected.push({...generated,optimizerGroup:group,generatedForBestRoster:true});}
  }
