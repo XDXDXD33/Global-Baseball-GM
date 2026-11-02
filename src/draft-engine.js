@@ -76,11 +76,23 @@ export function promoteProspect(state,prospectId){
 export function demotePlayer(state,playerId){
  const p=state.players.find(x=>x.id===playerId&&x.clubId===state.clubId);
  if(!p)throw new Error("找不到本隊一軍球員");
- if(state.currentGame?.status==="live"&&state.currentGame.lineups?.[state.clubId]?.includes(playerId))throw new Error("球員正在比賽中，無法下放");
- const cfg=state.lineups?.[state.clubId]||{};
- if((cfg.lineup||[]).includes(playerId)||(cfg.rotation||[]).includes(playerId))throw new Error("請先將球員移出先發打序與輪值，再下放二軍");
+ if(state.currentGame?.status==="live"&&state.currentGame.lineups?.[state.clubId]?.includes(playerId))throw new Error("比賽進行中且球員已登錄，請在比賽結束後下放");
+ const cfg=state.lineups?.[state.clubId]||{lineup:[],rotation:[],bullpen:[]};
+ const remaining=state.players.filter(x=>x.clubId===state.clubId&&x.id!==playerId);
+ const battingPositions=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
+ if((cfg.lineup||[]).includes(playerId)){
+  const index=cfg.lineup.indexOf(playerId),used=new Set(cfg.lineup.filter(id=>id!==playerId));
+  const replacement=remaining.find(x=>!["SP","RP","P"].includes(x.position)&&!used.has(x.id)&&({C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"],DH:["C","1B","2B","3B","SS","LF","CF","RF","OF","DH"]}[battingPositions[index]]||[]).includes(x.position));
+  if(!replacement)throw new Error("目前沒有可替補該守位的野手，請先補足替補球員再下放");
+  cfg.lineup[index]=replacement.id;
+ }
+ if((cfg.rotation||[]).includes(playerId)){
+  const index=cfg.rotation.indexOf(playerId),replacement=remaining.find(x=>x.position==="SP"&&!(cfg.rotation||[]).includes(x.id));
+  if(!replacement)throw new Error("目前沒有其他先發投手可補入輪值，請先補足先發投手再下放");
+  cfg.rotation[index]=replacement.id;
+ }
+ cfg.bullpen=(cfg.bullpen||[]).filter(id=>id!==playerId);
  state.players=state.players.filter(x=>x.id!==playerId);delete state.contracts?.[playerId];
- if(cfg.bullpen)cfg.bullpen=cfg.bullpen.filter(id=>id!==playerId);
  state.minorLeague??=[];state.minorLeague.push({...p,rosterLevel:"minor",demotedSeason:state.season});
  return p;
 }
