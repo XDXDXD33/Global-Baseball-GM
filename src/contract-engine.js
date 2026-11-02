@@ -117,14 +117,11 @@ export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
  if(annual<demand*.9)throw new Error("球員拒絕報價，期望年薪約為 $"+demand.toLocaleString());
  const bonus=Math.round(annual*.2);
  if(state.budget<bonus)throw new Error("資金不足，無法支付簽約金");
- const existing=state.players.find(x=>x.sourcePlayerId&&x.sourcePlayerId===p.sourcePlayerId);
- if(existing?.clubId){
-  const oldClub=existing.clubId,oldCfg=state.lineups?.[oldClub];
-  if(oldCfg)for(const key of ["lineup","rotation","bullpen"])oldCfg[key]=(oldCfg[key]||[]).filter(id=>id!==existing.id);
-  delete state.contracts?.[existing.id];
-  state.players=state.players.filter(x=>x.id!==existing.id);
-  if(oldClub!==state.clubId)state.lineups[oldClub]=buildDefaultLineup(state.players,oldClub);
- }
+ const existing=state.players.filter(x=>x.sourcePlayerId&&x.sourcePlayerId===p.sourcePlayerId&&x.clubId);
+ const affectedClubs=new Set(existing.map(x=>x.clubId));
+ for(const old of existing)delete state.contracts?.[old.id];
+ if(existing.length)state.players=state.players.filter(x=>!(x.sourcePlayerId&&x.sourcePlayerId===p.sourcePlayerId&&x.clubId));
+ for(const oldClub of affectedClubs)if(oldClub!==state.clubId)state.lineups[oldClub]=buildDefaultLineup(state.players,oldClub);
  const signed={...p,id:"signed-"+p.id+"-"+state.season,clubId:state.clubId,rosterLevel:"first",contractStatus:"signed",source:p.source||"國際洋將招募市場"};
  state.players.push(signed);state.contracts??={};
  state.contracts[signed.id]={salary:Math.round(annual),yearsRemaining:term,expirySeason:state.season+term-1,status:"active",signedSeason:state.season,signingBonus:bonus};
