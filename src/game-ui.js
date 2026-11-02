@@ -7,6 +7,7 @@ import { advanceContractYear } from "./contract-engine.js";
 import { processAiRetirements } from "./retirement-engine.js";
 import { runAIClubManagement,settleAIClubFinances } from "./ai-management.js";
 import { startDraft,developProspects } from "./draft-engine.js";
+import { initializeStaff,settleStaffPayroll,recoverInjuries } from "./staff-engine.js";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const club=id=>LEAGUE.clubs.find(c=>c.id===id);
 const money=n=>"$"+Math.round(n).toLocaleString();
@@ -64,7 +65,7 @@ function recordStats(state,game,isPostseason=false){
  for(const [id,stats] of Object.entries(game.pitcherStats)){const target=bucket.pitchers[id]||(bucket.pitchers[id]={outs:0,ER:0,H:0,BB:0,K:0,pitches:0,WP:0,PB:0,BK:0});for(const [k,v] of Object.entries(stats))target[k]=(Number(target[k])||0)+Number(v||0);}
  for(const [id,stats] of Object.entries(game.fieldingStats||{})){const target=bucket.fielders[id]||(bucket.fielders[id]={E:0,PO:0,A:0,DP:0,PB:0,CI:0});for(const [k,v] of Object.entries(stats))target[k]=(Number(target[k])||0)+Number(v||0);}
 }
-function advanceInjuryDays(state){for(const [id,injury] of Object.entries(state.injuries||{})){if(injury.createdMatchday===state.matchday)continue;injury.daysRemaining=Math.max(0,(Number(injury.daysRemaining)||0)-1);if(!injury.daysRemaining)delete state.injuries[id];}}
+function advanceInjuryDays(state){recoverInjuries(state);}
 function finishNextSeason(state){processAiRetirements(state);advanceContractYear(state);state.season++;state.matchday=1;state.month=1;state.phase="regular";state.postseason=null;state.schedule=createLeagueSchedule(state.season);state.currentGame=null;state.seasonStats={batters:{},pitchers:{},fielders:{}};state.postseasonStats=null;state.gameArchive=[];state.players=state.players.map(p=>({...p,age:p.age+1}));state.minorLeague=(state.minorLeague||[]).map(p=>({...p,age:p.age+1}));runAIClubManagement(state,{phase:"offseason"});startDraft(state,{count:30,rounds:3});state.wins=0;state.losses=0;}
 function settleEconomy(state,fixture,game){
  if(fixture.homeId===state.clubId){
@@ -77,13 +78,13 @@ function settleEconomy(state,fixture,game){
  }
 }
 function finishMonth(state){
- developPlayers(state);developProspects(state);settleAIClubFinances(state);runAIClubManagement(state,{phase:"monthly"});
+ initializeStaff(state);developPlayers(state);developProspects(state);settleAIClubFinances(state);runAIClubManagement(state,{phase:"monthly"});const staffPayroll=settleStaffPayroll(state);
  state.month=Math.min(12,Math.floor((state.matchday-1)/10)+1);
  const roster=state.players.filter(p=>p.clubId===state.clubId),payroll=roster.reduce((n,p)=>n+(state.contracts?.[p.id]?.salary||estimatePlayerSalary(p)),0);
  const sponsor=3500000+(state.fanbase*30);
  const maintenance=1800000+(state.trainingLevel||1)*250000+(state.scoutingLevel||1)*180000;
  state.budget+=sponsor-Math.round(payroll/12)-maintenance;
- state.monthlyFinance={sponsor,monthlyPayroll:Math.round(payroll/12),maintenance,net:sponsor-Math.round(payroll/12)-maintenance};
+ state.monthlyFinance={sponsor,monthlyPayroll:Math.round(payroll/12),staffPayroll:staffPayroll[state.clubId],maintenance,net:sponsor-Math.round(payroll/12)-staffPayroll[state.clubId]-maintenance};
 }
 export function bindGamePage(state,persist,render){
  const start=()=>{
