@@ -10,6 +10,7 @@ import { renderGamePage, bindGamePage } from "./game-ui.js";
 import { initializeContracts } from "./contract-engine.js";
 import { initializeAIClubFinances,runAIClubManagement } from "./ai-management.js";
 import { initializeStaff } from "./staff-engine.js";
+import { importCompleteHistoricalDatabase, createHistoricalSeasonRoster, buildHistoricalForeignMarket } from "./season-roster.js";
 
 const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = "global-baseball-gm-save-v1";
@@ -72,15 +73,50 @@ function refreshWelcome(){
 }
 function setup(){
   $("#team-select").innerHTML=LEAGUE.clubs.map(c=>`<option value="${c.id}">${c.name} · ${c.city}</option>`).join("");
+  $("#season-select").innerHTML=Array.from({length:35},(_,i)=>2024-i).map(y=>`<option value="${y}" ${y===2024?"selected":""}>${y} 球季</option>`).join("");
+  $("#career-status").textContent="選擇歷史球季後，系統會自動準備對應球員資料。";
   $("#career-dialog").showModal();
 }
-function startCareer(e){
+async function startCareer(e){
   e.preventDefault();
-  const existing=localStorage.getItem(STORAGE_KEY);if(existing){if(!confirm("目前已有球團存檔。建立新球團會先備份舊存檔，再開始新遊戲。要繼續嗎？"))return;localStorage.setItem(STORAGE_KEY+"-backup-"+Date.now(),existing);}
-  const team=club($("#team-select").value);
-  const players=createInitialLeagueRoster(2026);
-  state={version:2,leagueId:"cpbl",season:2026,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague:[],draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players,history:emptyHistory(),lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(2026),currentGame:null,freeAgents:createFreeAgentPool(2026),tactics:{},contracts:initializeContracts(players,2026),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString()};initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});
-  $("#career-dialog").close();persist();showGame();
+  const submit=$("#career-form button[type='submit']"),status=$("#career-status");
+  if(submit.disabled)return;
+  submit.disabled=true;submit.textContent="正在建立球團…";
+  try{
+    const year=Number($("#season-select").value);
+    if(!Number.isInteger(year)||year<1990||year>2024)throw new Error("目前可選年份為 1990–2024。");
+    const existing=localStorage.getItem(STORAGE_KEY);
+    if(existing){if(!confirm("目前已有球團存檔。建立新球團會先備份舊存檔，再開始新遊戲。要繼續嗎？"))return;localStorage.setItem(STORAGE_KEY+"-backup-"+Date.now(),existing);}
+    status.textContent="正在讀取本機歷史資料…";
+    let history=await readHistoryDB(),importResult;
+    try{
+      importResult=await importCompleteHistoricalDatabase(history,progress=>{
+        status.textContent=progress.message+" · "+progress.completed+" / "+progress.total+" 個檔案，"+progress.rows.toLocaleString()+" 筆資料";
+      });
+      history=importResult.history;
+      await saveHistoryDB(history);
+    }catch(error){
+      console.warn("Historical auto-import failed:",error);
+      status.textContent="線上資料匯入遇到問題，正在使用已保存的歷史資料或虛構球員備援名單…";
+    }
+    const team=club($("#team-select").value);
+    const foreignLimit=validateForeignLimit($("#foreign-limit").value);
+    const historical=createHistoricalSeasonRoster(history,year,foreignLimit);
+    const hasSeasonData=historical.realCount>0;
+    const players=hasSeasonData?historical.players:createInitialLeagueRoster(year);
+    const minorLeague=hasSeasonData?historical.minorLeague:[];
+    const foreignMarket=buildHistoricalForeignMarket(history,year,players,year);
+    state={version:3,leagueId:"cpbl",season:year,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague,draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit,wins:0,losses:0,budget:120000000,fanbase:8500,players,history,lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(year),currentGame:null,freeAgents:createFreeAgentPool(year),foreignMarket,tactics:{},contracts:initializeContracts(players,year),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString(),dataImport:{source:"CPBL Opendata",season:year,completeFiles:importResult?.completed||0,totalFiles:importResult?.total||107,errors:importResult?.errors||[]}};
+    initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});
+    $("#career-dialog").close();persist();showGame();
+    if(!hasSeasonData)alert("已建立球團，但目前沒有成功取得所選年份的歷史球員統計，已使用依國籍生成的虛構球員作為備援。可稍後到歷史資料庫重新匯入。");
+  }catch(error){
+    console.error("Career setup failed:",error);
+    status.textContent="建立失敗："+error.message;
+    alert("建立球團失敗："+error.message);
+  }finally{
+    submit.disabled=false;submit.textContent="開始經營 →";
+  }
 }
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
 function dashboard(){
