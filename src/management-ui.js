@@ -17,7 +17,7 @@ export function renderLineupPage(state){
  const cfg=state.lineups?.[clubId]||{lineup:[],rotation:[],bullpen:[]},batting=cfg.lineup||[],rotation=cfg.rotation||[],bestPlan=calculateBestRoster(state,clubId);
  return `<section class="panel"><div class="panel-heading-row"><div><h3>先發打序與守位</h3><p class="field-help">每場比賽會依照這份打序輪替。先發九人不可重複，替補球員不會自動進入打序。</p></div><span class="tag real">${hitters.length} 位野手</span></div>
  <div class="panel-heading-row"><div><h3>自動最佳陣容</h3><p class="field-help">依能力值由高至低選出 28 人，配置 SP 4、RP 9、C 2、1B/2B/3B/SS 各 2、OF 5。會自動將未入選的一軍球員移至二軍。</p><p class="field-help">目前可組成 ${bestPlan.filled}/28 人 ${bestPlan.shortages.length?" · "+esc(bestPlan.shortages.join("、")):" · 名額完整"}</p></div><button type="button" id="auto-best-roster" class="button button-primary" ${bestPlan.shortages.length?"disabled":""}>一鍵最佳陣容</button></div><p id="auto-best-result" class="field-help" aria-live="polite"></p><form id="lineup-form"><div class="lineup-grid">${positions.map((pos,i)=>`<label><span>${i+1} 棒 · ${posName[pos]}</span>${select("bat"+i,hitters.filter(p=>canPlay(p,pos)),batting[i]||"")}</label>`).join("")}</div>
- <h3 class="subheading">先發輪值</h3><div class="lineup-grid rotation-grid">${[0,1,2,3,4].map(i=>`<label><span>第 ${i+1} 號先發</span>${select("sp"+i,pitchers.filter(p=>p.position==="SP"),rotation[i]||"")}</label>`).join("")}</div>
+ <h3 class="subheading">先發輪值</h3><div class="lineup-grid rotation-grid">${[0,1,2,3].map(i=>`<label><span>第 ${i+1} 號先發</span>${select("sp"+i,pitchers.filter(p=>p.position==="SP"),rotation[i]||"")}</label>`).join("")}</div>
  <h3 class="subheading">比賽策略</h3><div class="lineup-grid tactics-grid">
  <label><span>打擊策略</span><select name="aggressiveHitting"><option value="normal" ${state.tactics?.[clubId]?.aggressiveHitting!=="yes"?"selected":""}>平衡攻擊</option><option value="yes" ${state.tactics?.[clubId]?.aggressiveHitting==="yes"?"selected":""}>積極攻擊</option></select></label>
  <label><span>盜壘策略</span><select name="stealAggression"><option value="normal" ${(state.tactics?.[clubId]?.stealAggression||"normal")==="normal"?"selected":""}>視情況嘗試</option><option value="aggressive" ${state.tactics?.[clubId]?.stealAggression==="aggressive"?"selected":""}>積極跑壘</option><option value="conservative" ${state.tactics?.[clubId]?.stealAggression==="conservative"?"selected":""}>保守跑壘</option></select></label>
@@ -30,9 +30,9 @@ export function bindLineupPage(state,persist,render){
  document.querySelector("#auto-best-roster")?.addEventListener("click",()=>{try{const result=applyBestRoster(state);persist();render();alert("最佳陣容完成！已選出 "+result.filled+" 名球員。");}catch(error){const out=document.querySelector("#auto-best-result");if(out)out.textContent=error.message;}});
  const form=document.querySelector("#lineup-form");if(!form)return;
  form.addEventListener("submit",e=>{
-  e.preventDefault();const d=new FormData(form),lineup=positions.map((_,i)=>String(d.get("bat"+i)||"")),rotation=[0,1,2,3,4].map(i=>String(d.get("sp"+i)||""));
+  e.preventDefault();const d=new FormData(form),lineup=positions.map((_,i)=>String(d.get("bat"+i)||"")),rotation=[0,1,2,3].map(i=>String(d.get("sp"+i)||""));
   if(lineup.some(x=>!x)||new Set(lineup).size!==9){document.querySelector("#lineup-result").textContent="打序必須填滿九個位置，而且不能重複球員。";return;}
-  if(rotation.some(x=>!x)||new Set(rotation).size!==5){document.querySelector("#lineup-result").textContent="必須指定五名不同的先發投手。";return;}
+  if(rotation.some(x=>!x)||new Set(rotation).size!==4){document.querySelector("#lineup-result").textContent="必須指定四名不同的先發投手。";return;}
   const validHitters=lineup.every((id,i)=>state.players.some(p=>p.id===id&&p.clubId===state.clubId&&canPlay(p,positions[i])));
   const validPitchers=rotation.every(id=>state.players.some(p=>p.id===id&&p.clubId===state.clubId&&p.position==="SP"));
   if(!validHitters||!validPitchers){document.querySelector("#lineup-result").textContent="陣容包含不屬於本隊或守位不符的球員。";return;}
