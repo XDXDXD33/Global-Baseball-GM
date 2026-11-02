@@ -15,15 +15,15 @@ const CPBL_TRANSLATION={MLB:{power:1.75,avg:.018,ops:.035},NPB:{power:1.28,avg:.
 function projectCPBLSeason(p){
  const s=p.stats,pa=Math.max(1,s.PA||s.AB||1),f=CPBL_TRANSLATION[p.league]||{power:1.1,avg:.008,ops:.015};
  const projectedPA=600,hr=Math.round((s.HR||0)/pa*projectedPA*f.power);
- const hits=Math.round((s.H||0)/Math.max(1,s.AB||pa)*projectedPA*f.power);
- const avg=clamp((s.AVG??.25)+f.avg,.2,.42)/100; // converted below to a baseball rate
  const battingAverage=Number(((s.AVG??.25)+f.avg).toFixed(3));
+ const projectedAB=Math.round(projectedPA*.88);
+ const hits=Math.round(battingAverage*projectedAB);
  const obp=Number(Math.min(.52,(s.OBP??.32)+f.ops*.55).toFixed(3));
  const slg=Number(Math.min(.8,(s.SLG??.4)+f.ops*1.25).toFixed(3));
  const ops=Number((obp+slg).toFixed(3));
  const sb=Math.round((s.SB||0)/pa*projectedPA*1.08);
  const rbi=Math.round((s.RBI||0)/pa*projectedPA*f.power);
- return {G:120,PA:projectedPA,AB:Math.round(projectedPA*.88),H:hits,HR:hr,RBI:rbi,SB:sb,AVG:battingAverage,OBP:obp,SLG:slg,OPS:ops};
+ return {G:120,PA:projectedPA,AB:projectedAB,H:hits,HR:hr,RBI:rbi,SB:sb,AVG:battingAverage,OBP:obp,SLG:slg,OPS:ops};
 }
 function estimateRatings(p,projection){
  const s=p.stats,pa=Math.max(1,s.PA||s.AB||1),hr=projection.HR;
