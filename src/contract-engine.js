@@ -106,6 +106,9 @@ export function offerExtension(state,{playerId,salary,years=2}){
 export function signFreeAgent(state,{playerId,years=2,salary=null}){
  const p=state.freeAgents?.find(x=>x.id===playerId);
  if(!p)throw new Error("這名球員已不在自由球員市場");
+ const sameIdentity=state.players.find(x=>(x.id===p.id)||(p.sourcePlayerId&&x.sourcePlayerId===p.sourcePlayerId));
+ if(sameIdentity?.retired)throw new Error("這名球員已經退休，不能再進行招募。");
+ if(sameIdentity?.clubId)throw new Error("這名球員目前仍隸屬其他球團，不能重複簽約。");
  const roster=rosterOf(state,state.clubId);
  if(roster.length>=30)throw new Error("本隊名單已達 30 人上限，請先釋出球員");
  if(p.foreign&&countForeignPlayers(roster)>=state.foreignLimit)throw new Error("洋將名額已滿，無法簽下這名球員");
