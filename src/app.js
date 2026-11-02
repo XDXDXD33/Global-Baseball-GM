@@ -60,7 +60,24 @@ function persist(){if(!state)return Promise.resolve();const save={...state};dele
 function showGame(){
  $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
  $("#save-indicator").textContent="已載入本機存檔";render();
- readHistoryDB().then(data=>{if(state){state.history=data;render();}});
+ readHistoryDB().then(async data=>{
+  if(!state)return;
+  let history=data;
+  try{
+   if((history.importedFiles||[]).length<107){
+    $("#save-indicator").textContent="同步歷史球員資料…";
+    const result=await importCompleteHistoricalDatabase(history,progress=>{$("#save-indicator").textContent="歷史資料 "+progress.completed+"/"+progress.total;});
+    history=result.history;await saveHistoryDB(history);
+   }
+  }catch(error){console.warn("Historical database background sync failed:",error);}
+  if(!state)return;
+  state.history=history;
+  if(!Array.isArray(state.foreignMarket)||state.foreignMarketSeason!==state.season){
+   state.foreignMarket=buildHistoricalForeignMarket(history,state.season,state.players,state.season,state.clubId);
+   state.foreignMarketSeason=state.season;
+  }
+  persist();render();
+ });
 }
 function refreshWelcome(){
  const raw=localStorage.getItem(STORAGE_KEY),info=$("#save-info"),continueBtn=$("#continue-btn");
@@ -126,7 +143,7 @@ function dashboard(){
  <div class="grid" style="margin-top:16px">${stat("戰績",state.wins+" 勝 / "+state.losses+" 敗",played+" 場已完成")}${stat("聯盟排名",rank+" / 6","依目前勝率")}${stat("球團資金","$"+(state.budget/1000000).toFixed(1)+"M","含票房、薪資與設施支出")}${stat("球迷基數",(Number(state.fanbase)||8500).toLocaleString(),"影響主場票房")}</div>
  <div class="panel"><div class="panel-heading-row"><div><h3>下一場比賽</h3><p class="field-help">第 ${state.matchday} / 120 個比賽日 · 每隊 120 場例行賽</p></div><button class="button button-primary" data-go-page="games">前往比賽中心 →</button></div>${next?`<div class="next-game compact"><div><small>${esc(club(next.awayId).name)}（客）</small><strong>VS</strong><small>${esc(club(next.homeId).name)}（主）</small></div><p>你的球隊是${next.homeId===c.id?"主場":"客場"}球隊。</p></div>`:'<p class="empty-state">球季賽程已完成。</p>'}</div>
  <div class="panel"><h3>球團管理快捷入口</h3><div class="quick-actions"><button class="button button-quiet" data-go-page="lineup">陣容與戰術</button><button class="button button-quiet" data-go-page="operations">球團營運與自由球員</button><button class="button button-quiet" data-go-page="roster">完整球員名單</button></div></div>
- <div class="panel"><h3>目前球員名單摘要</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>資料類型</th></tr></thead><tbody>${roster.slice(0,12).map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td><span class="tag fake">虛擬示範</span></td></tr>`).join("")}</tbody></table></div><p class="field-help">開局會為六支球隊建立完整的 26 人虛擬示範名單，真實歷史球員不會被冒充成現役球員。</p></div>`;
+ <div class="panel"><h3>目前球員名單摘要</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>資料類型</th></tr></thead><tbody>${roster.slice(0,12).map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td><span class="tag ${p.dataKind==="real"?"real":"fake"}">${p.dataKind==="real"?"真實球員":"虛構球員"}</span></td></tr>`).join("")}</tbody></table></div><p class="field-help">真實球員依所選球季歷史資料及球隊 ID 歸隊；歷史資料未涵蓋的球隊與名額缺口，使用依國籍規則生成並明確標記的虛構球員。</p></div>`;
 }function leaguePage(){
  const rows=calculateStandings(state.schedule||[]);
  return `<div class="panel"><h3>${state.season} CPBL 聯盟戰績</h3><div class="table-wrap"><table><thead><tr><th>排名</th><th>球隊</th><th>場次</th><th>勝</th><th>敗</th><th>和</th><th>勝率</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td><b>${club(x.teamId).name}</b>${x.teamId===state.clubId?' <span class="tag fake">我的球隊</span>':''}</td><td>${x.games}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.ties}</td><td>${x.winPct.toFixed(3)}</td></tr>`).join("")}</tbody></table></div><p class="field-help">六隊循環賽程，每隊 120 場。比賽由同一套引擎逐球結算，AI 球隊也會實際模擬。</p></div>`;
