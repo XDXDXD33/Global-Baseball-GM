@@ -28,3 +28,15 @@
 .team-total-row{font-weight:800;background:#203446;border-top:2px solid var(--lime)}.team-total-row th,.team-total-row td{color:#eaf3fa;font-weight:800}.quick-sim-controls input{min-width:0}
 .player-table-tools{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0 12px}.player-table-tools label{display:block;min-width:110px;flex:1;color:#bdcbd7;font-size:10px}.player-table-tools input{display:block;width:100%;margin-top:5px;padding:8px;background:#0c1723;color:var(--text);border:1px solid var(--line);border-radius:5px}.player-sortable{cursor:pointer}.player-sortable:hover{color:var(--lime)}
 .trade-card-filters,.overseas-filters{display:grid;grid-template-columns:1.2fr 1fr 1.2fr;gap:7px;margin:9px 0}.trade-card-filters input,.trade-card-filters select,.overseas-filters input,.overseas-filters select{min-width:0;width:100%;padding:8px;background:#0c1723;color:var(--text);border:1px solid var(--line);border-radius:5px;font:11px "Noto Sans TC"}@media(max-width:650px){.trade-card-filters,.overseas-filters{grid-template-columns:1fr}}
+
+.quick-sim-controls{grid-template-columns:repeat(4,minmax(0,1fr))}
+.trade-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.trade-team-card{display:flex;align-items:center;gap:13px;text-align:left;padding:16px;background:#0c1723;border:1px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer;min-height:86px}
+.trade-team-card:hover{border-color:var(--lime);background:#172638}
+.trade-team-card>span:nth-child(2){flex:1;min-width:0}
+.trade-team-card b,.trade-team-card small{display:block}
+.trade-team-card small{margin-top:5px;color:var(--muted);font-size:10px}
+.trade-team-card>strong{color:var(--lime);font-size:11px;white-space:nowrap}
+.trade-team-code{width:42px;height:42px;display:grid;place-items:center;background:#203446;border:1px solid #40566a;border-radius:7px;color:var(--lime);font:700 12px "DM Mono";flex:none}
+@media(max-width:850px){.quick-sim-controls{grid-template-columns:1fr 1fr}.trade-team-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.quick-sim-controls{grid-template-columns:1fr}}
