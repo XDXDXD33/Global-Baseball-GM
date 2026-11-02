@@ -11,7 +11,8 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const positions=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
 const posName={C:"捕手", "1B":"一壘", "2B":"二壘", "3B":"三壘",SS:"游擊",LF:"左外野",CF:"中外野",RF:"右外野",DH:"指定打擊",SP:"先發投手",RP:"後援投手",OF:"外野"};
 const canPlay=(p,pos)=>({C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"],DH:["C","1B","2B","3B","SS","LF","CF","RF","OF","DH"]}[pos]||[]).includes(p.position);
-const select=(name,items,value,empty=false)=>`<select name="${name}">${empty?'<option value="">未指定</option>':""}${items.map(p=>`<option value="${esc(p.id)}" ${p.id===value?"selected":""}>${esc(p.name)} · ${p.position}</option>`).join("")}</select>`;
+const lineupRatings=p=>{const r=p.ratings||{},keys=["contact","power","eye","avoidK","speed","stealing","fielding","arm","range","velocity","control","movement","stamina"],labels={contact:"CON",power:"POW",eye:"EYE",avoidK:"K",speed:"SPD",stealing:"STL",fielding:"DEF",arm:"ARM",range:"RNG",velocity:"VEL",control:"CTL",movement:"MOV",stamina:"STA"};return keys.filter(k=>Number.isFinite(Number(r[k]))).map(k=>labels[k]+" "+Math.round(Number(r[k]))).join(" · ");};
+const select=(name,items,value,empty=false)=>"<select name=\""+name+"\">"+(empty?'<option value="">未指定</option>':"")+items.map(p=>"<option value=\""+esc(p.id)+"\" "+(p.id===value?"selected":"")+">"+esc(p.name)+" · "+p.position+" · OVR "+Math.round(estimatePlayerAbility(p))+" · "+lineupRatings(p)+"</option>").join("")+"</select>";
 export function renderLineupPage(state){
  const clubId=state.clubId,roster=state.players.filter(p=>p.clubId===clubId),hitters=roster.filter(p=>!["SP","RP","P"].includes(p.position)),pitchers=roster.filter(p=>["SP","RP","P"].includes(p.position));
  const cfg=state.lineups?.[clubId]||{lineup:[],rotation:[],bullpen:[]},batting=cfg.lineup||[],rotation=cfg.rotation||[],bestPlan=calculateBestRoster(state,clubId);
