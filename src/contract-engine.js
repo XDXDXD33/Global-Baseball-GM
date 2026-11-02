@@ -183,7 +183,7 @@ export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
  const bonus=Math.round(annual*.2);
  requireAffordablePayroll(state,calculateAnnualPayroll(state)+annual,bonus);
  const id=base===candidate?"signed-"+candidate.id+"-"+state.season:base.id;
- const signed={...base,id,clubId:state.clubId,rosterLevel:"first",contractStatus:"signed",source:base.source||"國際洋將招募市場",marketType:base.marketType||candidate.marketType};
+ const signed={...base,id,clubId:state.clubId,rosterLevel:"first",contractStatus:"signed",source:base.source||"國際洋將招募市場",marketType:base.marketType||candidate.marketType,marketSourceId:candidate.id};
  state.players??=[];
  const index=state.players.findIndex(x=>x.id===id);
  if(index>=0)state.players[index]=signed;else state.players.push(signed);
