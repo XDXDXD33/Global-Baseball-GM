@@ -1,11 +1,11 @@
 import { estimatePlayerAbility } from "./rules.js";
 const GROUPS=[["SP",4,p=>p.position==="SP"],["RP",9,p=>["RP","P"].includes(p.position)],["C",2,p=>p.position==="C"],["1B",2,p=>p.position==="1B"],["2B",2,p=>p.position==="2B"],["3B",2,p=>p.position==="3B"],["SS",2,p=>p.position==="SS"],["OF",5,p=>["LF","CF","RF","OF"].includes(p.position)]];
 export function calculateBestRoster(state,teamId=state.clubId){
- const active=(state.players||[]).filter(p=>p.clubId===teamId),farm=(state.minorLeague||[]).filter(p=>p.clubId===teamId),free=(state.freeAgents||[]).filter(p=>!p.foreign);
- const pool=[...active,...farm,...free],used=new Set(),selected=[],shortages=[];
+ const active=(state.players||[]).filter(p=>p.clubId===teamId),farm=(state.minorLeague||[]).filter(p=>p.clubId===teamId),free=state.freeAgents||[];
+ const pool=[...active,...farm,...free],used=new Set(),selected=[],shortages=[];let selectedForeign=0;
  for(const [group,count,match] of GROUPS){
-  const choices=pool.filter(p=>match(p)&&!used.has(p.id)).sort((a,b)=>estimatePlayerAbility(b)-estimatePlayerAbility(a));
-  const chosen=choices.slice(0,count);chosen.forEach(p=>{used.add(p.id);selected.push({...p,optimizerGroup:group});});
+  const choices=pool.filter(p=>match(p)&&!used.has(p.id)&&(!p.foreign||selectedForeign<Number(state.foreignLimit||0))).sort((a,b)=>(Number(!!a.foreign)-Number(!!b.foreign))||(estimatePlayerAbility(b)-estimatePlayerAbility(a)));
+  const chosen=choices.slice(0,count);chosen.forEach(p=>{used.add(p.id);if(p.foreign)selectedForeign++;selected.push({...p,optimizerGroup:group});});
   if(chosen.length<count)shortages.push(group+" 尚缺 "+(count-chosen.length)+" 人");
  }
  return {selected,shortages,required:28,filled:selected.length,groups:Object.fromEntries(GROUPS.map(([g,n])=>[g,selected.filter(p=>p.optimizerGroup===g).length]))};
