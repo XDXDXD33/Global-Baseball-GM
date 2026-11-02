@@ -1,6 +1,6 @@
 import { LEAGUE } from "./data.js";
 import { generateFictionalName } from "./fictional-player-generator.js";
-import { estimatePlayerAbility, estimatePlayerSalary } from "./rules.js";
+import { estimatePlayerAbility, estimatePlayerSalary, countForeignPlayers } from "./rules.js";
 
 const POSITIONS = ["C","1B","2B","3B","SS","LF","CF","RF","SP","RP"];
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -64,7 +64,8 @@ export function makeDraftPick(state,prospectId){
 export function promoteProspect(state,prospectId){
  const p=state.minorLeague?.find(x=>x.id===prospectId&&x.clubId===state.clubId);
  if(!p)throw new Error("只能升上一軍的本隊二軍球員");
- if(state.players.filter(x=>x.clubId===state.clubId).length>=30)throw new Error("一軍名單已達 30 人，請先釋出或下放球員");
+ if(state.players.filter(x=>x.clubId===state.clubId&&x.rosterLevel!=="minor").length>=30)throw new Error("一軍名單已達 30 人，請先釋出或下放球員");
+ if(p.foreign&&countForeignPlayers(state.players.filter(x=>x.clubId===state.clubId&&x.rosterLevel!=="minor"))>=state.foreignLimit)throw new Error("一軍洋將名額已滿，請先下放或釋出洋將。");
  state.minorLeague=state.minorLeague.filter(x=>x.id!==prospectId);
  const promoted={...p,rosterLevel:"major",promotedSeason:state.season};
  delete promoted.potential;delete promoted.scoutingConfidence;delete promoted.developmentMonths;
