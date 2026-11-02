@@ -1,7 +1,7 @@
 import { LEAGUE, DEMO_PLAYERS, RATING_LABELS } from "./data.js";
 import { validateForeignLimit, estimatePlayerAbility, estimatePlayerSalary, calculateRatingConfidence } from "./rules.js";
 import { bindRosterTools } from "./player-tools.js";
-import { renderRosterPage } from "./roster-ui.js";
+import { renderRosterPage, bindRosterPage } from "./roster-ui.js";
 import { renderHistoryPage, bindHistoryPage } from "./history-ui.js";
 import { renderStarMarket, bindStarMarket } from "./star-market.js";
 import { createInitialLeagueRoster, buildDefaultLineup, createLeagueSchedule, createFreeAgentPool, calculateStandings } from "./game-engine.js";
@@ -178,7 +178,7 @@ function render(){
  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
  const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
  document.querySelectorAll("[data-go-page]").forEach(b=>b.addEventListener("click",()=>{page=b.dataset.goPage;render();}));
- if(page==="roster")bindRosterTools(state,persist,render);
+ if(page==="roster"){bindRosterPage();bindRosterTools(state,persist,render);}
  if(page==="lineup")bindLineupPage(state,persist,render);
  if(page==="games")bindGamePage(state,persist,render);
  if(page==="operations")bindOperationsPage(state,persist,render);
