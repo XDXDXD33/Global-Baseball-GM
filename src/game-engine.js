@@ -180,15 +180,21 @@ function resolveInPlay(game,batter,pitcher,teamId){
  const defense=defensePool.length?defensePool.reduce((sum,p)=>sum+rating(p,"fielding")*.7+rating(p,"range")*.3,0)/defensePool.length:50;
  const defensiveAdjustment=alignment==="infieldIn"&&battedBall==="ground"?-.018:alignment==="shift"&&battedBall==="ground"?-.012:alignment==="deepOutfield"&&battedBall==="air"?.002:0;
  const hitChance=clamp(.255+(contact-50)*.0025-(movement-50)*.0015-(defense-50)*.00055+defensiveAdjustment+(offense.aggressiveHitting==="yes"?.012:0)+(approach==="power"?-.008:approach==="contact"?.008:approach==="patient"?.002:0),.12,.39);
- if(random(game)<hitChance){
-  const hr=battedBall==="air"?clamp(.035+(power-50)*.00125+(approach==="power"?.018:0),.005,.13):.001,triple=clamp(.012+(speed-50)*.00045+(battedBall==="air"?.008:0),.004,.04),double=clamp(.12+(power-50)*.0012+(battedBall==="air"?.02:0)+(alignment==="deepOutfield"?-.035:0),.04,.24),r=random(game);
-  const type=r<hr?"HR":r<hr+triple?"3B":r<hr+triple+double?"2B":"1B";
+ // Home runs are resolved from airborne balls in play, not only after a generic hit roll.
+ // This lets elite power translate into the 40–55 HR range suggested by the CPBL projection.
+ const homeRunChance=battedBall==="air"?clamp(.065+(power-50)*.0058+(approach==="power"?.025:0),.01,.4):0;
+ if(battedBall==="air"&&random(game)<homeRunChance){
+  hit(game,batter,pitcher,teamId,"HR");
+  log(game,batter.name+" 擊出全壘打");
+ }else if(random(game)<hitChance){
+  const triple=clamp(.012+(speed-50)*.00045+(battedBall==="air"?.008:0),.004,.04),double=clamp(.12+(power-50)*.0012+(battedBall==="air"?.02:0)+(alignment==="deepOutfield"?-.035:0),.04,.24),r=random(game);
+  const type=r<triple?"3B":r<triple+double?"2B":"1B";
   hit(game,batter,pitcher,teamId,type);
-  log(game,batter.name+" 擊出"+({HR:"全壘打","3B":"三壘安打","2B":"二壘安打","1B":"一壘安打"}[type]));
+  log(game,batter.name+" 擊出"+({"3B":"三壘安打","2B":"二壘安打","1B":"一壘安打"}[type]));
  }else if(random(game)<clamp(.025-(defense-50)*.00045,.008,.05)){
   const old=[...game.bases],flyBall=battedBall==="air",eligible=fielders.filter(p=>flyBall?["LF","CF","RF","OF"].includes(p.position):["1B","2B","3B","SS","C"].includes(p.position)),pool=eligible.length?eligible:fielders,fielder=pool[Math.floor(random(game)*Math.max(1,pool.length))];
   if(fielder)fieldingLine(game,fielder.id).E++;
-  if(fielder)fieldingLine(game,fielder.id).E++;if(old[2])recordRun(game,teamId,old[2]);game.bases=[batter.id,old[0],old[1]];log(game,batter.name+" 上壘，"+(fielder?.name||"守備員")+" 發生守備失誤");
+  if(old[2])recordRun(game,teamId,old[2]);game.bases=[batter.id,old[0],old[1]];log(game,batter.name+" 上壘，"+(fielder?.name||"守備員")+" 發生守備失誤");
  }else{
   const fly=battedBall==="air";
   if(fly&&game.bases[2]&&game.outs<2){
