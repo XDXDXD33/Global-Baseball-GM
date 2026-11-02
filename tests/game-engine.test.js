@@ -32,6 +32,8 @@ test("full game resolves, records box score and standings",()=>{
 test("bullpen can replace the active pitcher",()=>{
  const fixture={id:"test2",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
  const g=createGame({fixture,players,lineups,seed:2}),next=lineups.brothers.bullpen[0];
+ assert.throws(()=>changePitcher(g,"brothers",next),/三名打者/);
+ g.pitcherBattersFaced[g.pitcherId.brothers]=3;
  changePitcher(g,"brothers",next);assert.equal(g.pitcherId.brothers,next);
 });
 
@@ -114,6 +116,8 @@ test("recent pitcher workload can trigger an early bullpen change",()=>{
  const starter=lineups.brothers.rotation[0];
  const g=createGame({fixture,players,lineups,seed:8,workload:{[starter]:180}});
  advancePitch(g);
+ assert.equal(g.pitcherId.brothers,starter);
+ g.pitcherBattersFaced[starter]=3;advancePitch(g);
  assert.notEqual(g.pitcherId.brothers,starter);
 });
 
@@ -181,4 +185,11 @@ test("defensive alignment command is only available to the fielding team",()=>{
  assert.equal(g.commands.brothers.defenseAlignment,"infieldIn");
  assert.throws(()=>setGameCommand(g,"lions",{defenseAlignment:"shift"}));
  assert.throws(()=>setGameCommand(g,"brothers",{defenseAlignment:"illegal"}));
+});
+
+test("manual pitcher change is blocked during an active plate appearance",()=>{
+ const fixture={id:"mid-pa-change",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:31,userTeamId:"brothers"}),next=lineups.brothers.bullpen[0];
+ g.pitcherBattersFaced[g.pitcherId.brothers]=3;g.currentPA={balls:1,strikes:0};
+ assert.throws(()=>changePitcher(g,"brothers",next),/打席結束/);
 });
