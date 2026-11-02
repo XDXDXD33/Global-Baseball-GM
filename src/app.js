@@ -8,7 +8,7 @@ import { createInitialLeagueRoster, buildDefaultLineup, createLeagueSchedule, cr
 import { renderLineupPage, bindLineupPage, renderOperationsPage, bindOperationsPage, renderTradePage, bindTradePage, renderFarmPage, bindFarmPage, renderFreeAgentsPage, bindFreeAgentsPage } from "./management-ui.js";
 import { renderGamePage, bindGamePage } from "./game-ui.js";
 import { createOverseasMarket } from "./overseas-market.js";
-import { initializeContracts } from "./contract-engine.js";
+import { initializeContracts,signForeignFreeAgent,contractDemand } from "./contract-engine.js";
 import { initializeAIClubFinances,runAIClubManagement } from "./ai-management.js";
 import { initializeStaff } from "./staff-engine.js";
 import { importCompleteHistoricalDatabase, createHistoricalSeasonRoster, buildHistoricalForeignMarket } from "./season-roster.js";
