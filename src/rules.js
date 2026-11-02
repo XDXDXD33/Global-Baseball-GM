@@ -1,5 +1,5 @@
 export function validateForeignLimit(v){const n=Number(v);if(!Number.isInteger(n)||n<0||n>13)throw new RangeError("洋將名額必須是 0 到 13 的整數");return n;}
-export const countForeignPlayers=ps=>ps.filter(p=>p.foreign===true).length;
+export const countForeignPlayers=ps=>ps.filter(p=>p.foreign===true&&p.rosterLevel!=="minor").length;
 export const canRegisterForeignPlayer=(ps,n)=>countForeignPlayers(ps)<validateForeignLimit(n);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const BAT={contact:.22,power:.2,eye:.14,avoidK:.1,speed:.1,stealing:.06,fielding:.08,arm:.05,range:.05};
