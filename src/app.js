@@ -195,7 +195,7 @@ function bindUniversalPlayerTables(){
 }
 function render(){
  if(!state)return;
- if(!Array.isArray(state.overseasMarket))state.overseasMarket=createOverseasMarket();
+ if(!Array.isArray(state.overseasMarket)||Number(state.overseasMarketVersion||0)<2){const signedOverseas=new Set((state.players||[]).filter(p=>p.marketType==="overseas").map(p=>p.id));state.overseasMarket=createOverseasMarket().filter(p=>!signedOverseas.has(p.id));state.overseasMarketVersion=2;}
  if(page==="operations"&&state.foreignMarketSeason!==state.season){state.foreignMarket=buildHistoricalForeignMarket(state.history||emptyHistory(),state.season,state.players,state.season,state.clubId);state.foreignMarketSeason=state.season;}
  $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
  const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",trades:"交易中心",farm:"二軍管理",freeagents:"自由球員",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",rankings:"球員排行榜",overseas:"海外球星",settings:"聯盟設定"};
