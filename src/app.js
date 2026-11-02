@@ -5,7 +5,7 @@ import { renderRosterPage, bindRosterPage } from "./roster-ui.js";
 import { renderHistoryPage, bindHistoryPage } from "./history-ui.js";
 import { renderStarMarket, bindStarMarket } from "./star-market.js";
 import { createInitialLeagueRoster, buildDefaultLineup, createLeagueSchedule, createFreeAgentPool, calculateStandings } from "./game-engine.js";
-import { renderLineupPage, bindLineupPage, renderOperationsPage, bindOperationsPage } from "./management-ui.js";
+import { renderLineupPage, bindLineupPage, renderOperationsPage, bindOperationsPage, renderTradePage, bindTradePage, renderFarmPage, bindFarmPage } from "./management-ui.js";
 import { renderGamePage, bindGamePage } from "./game-ui.js";
 import { initializeContracts } from "./contract-engine.js";
 import { initializeAIClubFinances,runAIClubManagement } from "./ai-management.js";
@@ -154,6 +154,8 @@ function historyPage(){return renderHistoryPage(state.history);}
 function starPage(){return renderStarMarket(state.history,starSeason);}
 function lineupPage(){return renderLineupPage(state);}
 function operationsPage(){return renderOperationsPage(state);}
+function tradePage(){return renderTradePage(state);}
+function farmPage(){return renderFarmPage(state);}
 function gamesPage(){return renderGamePage(state);}
 function rankingsPage(){
  const players=state.players.filter(p=>p.clubId===state.clubId),batters=Object.entries(state.seasonStats?.batters||{}),pitchers=Object.entries(state.seasonStats?.pitchers||{});
@@ -171,12 +173,12 @@ function render(){
  if(!state)return;
  if(page==="operations"&&state.foreignMarketSeason!==state.season){state.foreignMarket=buildHistoricalForeignMarket(state.history||emptyHistory(),state.season,state.players,state.season,state.clubId);state.foreignMarketSeason=state.season;}
  $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
- const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",rankings:"球員排行榜",settings:"聯盟設定"};
+ const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",trades:"交易中心",farm:"二軍管理",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",rankings:"球員排行榜",settings:"聯盟設定"};
  $("#page-title").textContent=titles[page]||"球團總覽";$("#season-label").textContent=state.season+" 球季";
  try{
   // Build the page registry inside the guarded block so a missing renderer
   // cannot abort the entire app before the recovery UI is available.
-  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,rankings:rankingsPage,settings:settingsPage};
+  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,trades:tradePage,farm:farmPage,history:historyPage,stars:starPage,league:leaguePage,rankings:rankingsPage,settings:settingsPage};
   $("#page-content").innerHTML=(pages[page]||dashboard)();
  }catch(error){
   console.error("Page render failed:",error);
@@ -191,6 +193,8 @@ function render(){
  if(page==="lineup")bindLineupPage(state,persist,render);
  if(page==="games")bindGamePage(state,persist,render);
  if(page==="operations")bindOperationsPage(state,persist,render);
+ if(page==="trades")bindTradePage(state,persist,render);
+ if(page==="farm")bindFarmPage(state,persist,render);
  if(page==="history")bindHistoryPage(state,persist,render);
  if(page==="stars")bindStarMarket(y=>{starSeason=y;render();});
 }
