@@ -31,8 +31,8 @@ export async function importCompleteHistoricalDatabase(existing=EMPTY(),onProgre
 }
 
 function countryIsForeign(country){
- const key=normalizeCountry(country);
- return key!=="TW";
+ if(!String(country||"").trim())return false;
+ return normalizeCountry(country)!=="TW";
 }
 function ageAt(profile,year){
  const match=String(profile?.birthday||"").match(/^(\d{4})/);
@@ -114,8 +114,8 @@ export function createHistoricalSeasonRoster(history,year,foreignLimit=4){
  }
  return {players,minorLeague,realCount:players.filter(p=>p.dataKind==="real").length,fictionalCount:players.filter(p=>p.dataKind==="fictional").length};
 }
-export function buildHistoricalForeignMarket(history,year,activePlayers=[],seed=2026){
- const activeIds=new Set(activePlayers.map(p=>p.sourcePlayerId).filter(Boolean));
+export function buildHistoricalForeignMarket(history,year,activePlayers=[],seed=2026,userClubId=null){
+ const activeIds=new Set(activePlayers.filter(p=>!userClubId||p.clubId===userClubId).map(p=>p.sourcePlayerId).filter(Boolean));
  const grouped=new Map();
  for(const kind of ["batting","pitching","fielding"]){
   for(const line of history?.[kind]||[]){
@@ -137,7 +137,9 @@ export function buildHistoricalForeignMarket(history,year,activePlayers=[],seed=
   if(activeIds.has(g.playerId))continue;
   const profile=history.players[g.playerId],p=historicalPlayer(profile,g.year,null,g);
   p.id="foreign-real-"+g.playerId;p.clubId=null;p.rosterLevel="market";p.contractStatus="free-agent";
-  p.marketEra=Math.floor(g.year/10)*10;p.marketSeason=g.year;
+  const careerYears=(profile.seasons||[]).map(Number).filter(y=>y<=Number(year));
+  const debut=careerYears.length?Math.min(...careerYears):g.year;
+  p.marketEra=Math.floor(debut/10)*10;p.marketSeason=g.year;
   p.source="CPBL Opendata · "+g.year+" 球季歷史成績";
   real.push(p);
  }
