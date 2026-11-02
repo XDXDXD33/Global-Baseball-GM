@@ -182,7 +182,7 @@ function resolveInPlay(game,batter,pitcher,teamId){
  const hitChance=clamp(.255+(contact-50)*.0025-(movement-50)*.0015-(defense-50)*.00055+defensiveAdjustment+(offense.aggressiveHitting==="yes"?.012:0)+(approach==="power"?-.008:approach==="contact"?.008:approach==="patient"?.002:0),.12,.39);
  // Home runs are resolved from airborne balls in play, not only after a generic hit roll.
  // This lets elite power translate into the 40–55 HR range suggested by the CPBL projection.
- const homeRunChance=battedBall==="air"?clamp(.065+(power-50)*.0058+(approach==="power"?.025:0),.01,.4):0;
+ const homeRunChance=battedBall==="air"?clamp(.19+(power-50)*.0075+(approach==="power"?.03:0),.03,.62):0;
  if(battedBall==="air"&&random(game)<homeRunChance){
   hit(game,batter,pitcher,teamId,"HR");
   log(game,batter.name+" 擊出全壘打");
