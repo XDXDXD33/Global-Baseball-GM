@@ -1,15 +1,12 @@
 import { LEAGUE } from "./data.js";
+import { generateFictionalPlayer } from "./fictional-player-generator.js";
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const rating=(p,key,fallback=50)=>Number.isFinite(Number(p?.ratings?.[key]))?Number(p.ratings[key]):fallback;
 const hash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 function rng(seed){let x=seed>>>0;return ()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};}
 function makePlayer(id,clubId,position,index,random){
- const age=20+Math.floor(random()*15);
- const ratings=["SP","RP"].includes(position)
- ?{velocity:45+Math.floor(random()*31),control:42+Math.floor(random()*31),movement:42+Math.floor(random()*31),stamina:position==="SP"?58+Math.floor(random()*27):25+Math.floor(random()*35),fielding:40+Math.floor(random()*20),arm:45+Math.floor(random()*30)}
- :{contact:42+Math.floor(random()*31),power:38+Math.floor(random()*36),eye:40+Math.floor(random()*31),speed:38+Math.floor(random()*36),fielding:42+Math.floor(random()*31),arm:40+Math.floor(random()*31),avoidK:40+Math.floor(random()*31),stealing:35+Math.floor(random()*41),range:40+Math.floor(random()*31)};
- return {id,name:"示範球員 "+String(index+1).padStart(2,"0"),clubId,position,age,role:position==="SP"?"先發投手":position==="RP"?"後援投手":position==="DH"?"指定打擊":position+" 野手",foreign:false,dataKind:"fictional",identityStatus:"fictional",source:"遊戲生成示範名單",confidence:1,ratings};
+ return generateFictionalPlayer({id,clubId,position,seed:id+"|"+index,country:"TW",rosterLevel:"first"});
 }
 export function createInitialLeagueRoster(seed=2026){
  const players=[];
@@ -31,8 +28,9 @@ export function buildDefaultLineup(players,clubId){
  return {lineup,rotation:roster.filter(p=>p.position==="SP").slice(0,5).map(p=>p.id),bullpen:roster.filter(p=>p.position==="RP").map(p=>p.id)};
 }
 export function createFreeAgentPool(seed=2026){
- const random=rng(hash("free-agents-"+seed)),positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","RP","RP","RP","RP","RP","RP"];
- return positions.map((pos,i)=>{const p=makePlayer("fa-"+seed+"-"+String(i+1).padStart(2,"0"),null,pos,i,random);p.name="自由球員 "+String(i+1).padStart(2,"0");p.foreign=i%4===0;p.contractStatus="free-agent";return p;});
+ const positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","RP","RP","RP","RP","RP","RP"];
+ const countries=["US","DOM","VEN","PR","CUB","JPN","KOR","MEX","PAN","COL"];
+ return positions.map((pos,i)=>{const p=generateFictionalPlayer({id:"fa-"+seed+"-"+String(i+1).padStart(2,"0"),clubId:null,position:pos,seed:"free-agent-"+seed+"-"+i,country:countries[i%countries.length],rosterLevel:"market"});p.contractStatus="free-agent";return p;});
 }
 export function createLeagueSchedule(season=2026,teamIds=LEAGUE.clubs.map(c=>c.id)){
  if(teamIds.length!==6)throw new RangeError("目前 CPBL 排程需要六支球隊");
