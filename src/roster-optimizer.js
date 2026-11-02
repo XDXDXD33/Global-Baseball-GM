@@ -19,8 +19,6 @@ export function applyBestRoster(state,teamId=state.clubId){
  state.players=(state.players||[]).filter(p=>p.clubId!==teamId||selectedIds.has(p.id)).map(p=>p.clubId===teamId?{...p,rosterLevel:"first"}:p);
  for(const p of selectedFree){state.players.push({...p,clubId:teamId,rosterLevel:"first",contractStatus:"signed"});state.freeAgents=state.freeAgents.filter(x=>x.id!==p.id);state.contracts??={};state.contracts[p.id]={salary:Math.round((p.marketDemand||2500000)*.08),yearsRemaining:2,expirySeason:state.season+1,status:"active",signedSeason:state.season,signingBonus:0};}
  state.minorLeague??=[];
- for(const p of [...farm]){}
- const selectedMinor=plan.selected.filter(p=>state.minorLeague.some(x=>x.id===p.id));
  state.minorLeague=state.minorLeague.filter(p=>p.clubId!==teamId||!selectedIds.has(p.id));
  for(const p of plan.selected){const active=state.players.find(x=>x.id===p.id);if(active)active.rosterLevel="first";}
  for(const p of [...state.players].filter(p=>p.clubId===teamId&&!selectedIds.has(p.id))){state.players=state.players.filter(x=>x.id!==p.id);state.minorLeague.push({...p,rosterLevel:"minor",demotedByOptimizer:true});}
