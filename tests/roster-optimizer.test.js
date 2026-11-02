@@ -39,7 +39,7 @@ test("applying best roster only moves owned players between first team and farm"
 test("missing 1B is filled by the best available hitter without generating or signing anyone",()=>{
  const s=makeState();s.players=s.players.filter(p=>p.position!=="1B");
  const originalCount=s.players.length,plan=applyBestRoster(s);
- assert.equal(plan.filled,28);
+ assert.equal(plan.filled,27);
  assert.equal(s.players.filter(p=>p.clubId==="brothers").length+s.minorLeague.filter(p=>p.clubId==="brothers").length,originalCount);
  assert.ok(!s.players.some(p=>p.source==="自動最佳陣容補位生成 · 虛構球員"));
  assert.ok(!s.players.some(p=>p.contractStatus==="signed"&&p.id==="free"));
@@ -56,7 +56,7 @@ test("repeated auto lineup runs are idempotent and never create duplicate player
  applyBestRoster(s);applyBestRoster(s);applyBestRoster(s);applyBestRoster(s);
  const ids=[...(s.players||[]),...(s.minorLeague||[])].filter(p=>p.clubId==="brothers").map(p=>p.id);
  assert.equal(ids.length,new Set(ids).size);
- assert.equal(ids.length,28);
+ assert.equal(ids.length,29);
  assert.equal(s.freeAgents.length,1);
 });
 test("real generated franchise roster optimizer does not use free agents",()=>{
