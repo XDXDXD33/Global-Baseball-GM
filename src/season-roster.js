@@ -115,7 +115,7 @@ export function createHistoricalSeasonRoster(history,year,foreignLimit=4){
  return {players,minorLeague,realCount:players.filter(p=>p.dataKind==="real").length,fictionalCount:players.filter(p=>p.dataKind==="fictional").length};
 }
 export function buildHistoricalForeignMarket(history,year,activePlayers=[],seed=2026,userClubId=null){
- const activeIds=new Set(activePlayers.filter(p=>p.clubId&&!p.retired).map(p=>p.sourcePlayerId).filter(Boolean));
+ const activeIds=new Set(activePlayers.filter(p=>p.clubId||p.retired).map(p=>p.sourcePlayerId).filter(Boolean));
  const grouped=new Map();
  for(const kind of ["batting","pitching","fielding"]){
   for(const line of history?.[kind]||[]){
