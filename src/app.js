@@ -30,6 +30,18 @@ function load(){
   const parsed=JSON.parse(raw);
   if(!parsed||!Array.isArray(parsed.players)||!parsed.clubId||!club(parsed.clubId))throw new Error("存檔格式不完整或球隊資料無效");
   state=parsed;state.history=emptyHistory();
+  // Backward-compatible defaults for saves created by earlier builds.
+  state.season=Number.isFinite(Number(state.season))?Number(state.season):2026;
+  state.month=Number.isFinite(Number(state.month))?Number(state.month):1;
+  state.manager=String(state.manager||"未命名球團");
+  state.budget=Number.isFinite(Number(state.budget))?Number(state.budget):120000000;
+  state.fanbase=Number.isFinite(Number(state.fanbase))?Number(state.fanbase):8500;
+  state.foreignLimit=validateForeignLimit(state.foreignLimit??4);
+  state.wins=Number.isFinite(Number(state.wins))?Number(state.wins):0;
+  state.losses=Number.isFinite(Number(state.losses))?Number(state.losses):0;
+  if(!Array.isArray(state.players))throw new Error("球員名單格式錯誤");
+  if(!Array.isArray(state.schedule))state.schedule=createLeagueSchedule(state.season);
+  if(!state.lineups||typeof state.lineups!=="object")state.lineups=Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(state.players,c.id)]));
   if(!state.schedule||!state.lineups){
    const custom=(state.players||[]).filter(p=>!String(p.id).startsWith("demo-"));
    state.players=[...createInitialLeagueRoster(state.season||2026),...custom];
@@ -74,7 +86,7 @@ function dashboard(){
  const c=club(state.clubId),roster=state.players.filter(p=>p.clubId===c.id),played=state.schedule?.filter(g=>g.status==="final"&&(g.homeId===c.id||g.awayId===c.id)).length||0,next=state.schedule?.find(g=>g.matchday===state.matchday&&(g.homeId===c.id||g.awayId===c.id));
  const standings=calculateStandings(state.schedule||[]),rank=standings.findIndex(x=>x.teamId===c.id)+1;
  return `<div class="panel team-hero"><div class="team-logo">${c.code}</div><div><div class="eyebrow">YOUR FRANCHISE</div><h2>${c.name}</h2><p>${esc(state.manager)} · ${c.city} · ${state.season} 球季</p></div></div>
- <div class="grid" style="margin-top:16px">${stat("戰績",state.wins+" 勝 / "+state.losses+" 敗",played+" 場已完成")}${stat("聯盟排名",rank+" / 6","依目前勝率")}${stat("球團資金","$"+(state.budget/1000000).toFixed(1)+"M","含票房、薪資與設施支出")}${stat("球迷基數",state.fanbase.toLocaleString(),"影響主場票房")}</div>
+ <div class="grid" style="margin-top:16px">${stat("戰績",state.wins+" 勝 / "+state.losses+" 敗",played+" 場已完成")}${stat("聯盟排名",rank+" / 6","依目前勝率")}${stat("球團資金","$"+(state.budget/1000000).toFixed(1)+"M","含票房、薪資與設施支出")}${stat("球迷基數",(Number(state.fanbase)||8500).toLocaleString(),"影響主場票房")}</div>
  <div class="panel"><div class="panel-heading-row"><div><h3>下一場比賽</h3><p class="field-help">第 ${state.matchday} / 120 個比賽日 · 每隊 120 場例行賽</p></div><button class="button button-primary" data-go-page="games">前往比賽中心 →</button></div>${next?`<div class="next-game compact"><div><small>${esc(club(next.awayId).name)}（客）</small><strong>VS</strong><small>${esc(club(next.homeId).name)}（主）</small></div><p>你的球隊是${next.homeId===c.id?"主場":"客場"}球隊。</p></div>`:'<p class="empty-state">球季賽程已完成。</p>'}</div>
  <div class="panel"><h3>球團管理快捷入口</h3><div class="quick-actions"><button class="button button-quiet" data-go-page="lineup">陣容與戰術</button><button class="button button-quiet" data-go-page="operations">球團營運與自由球員</button><button class="button button-quiet" data-go-page="roster">完整球員名單</button></div></div>
  <div class="panel"><h3>目前球員名單摘要</h3><div class="table-wrap"><table><thead><tr><th>球員</th><th>守位</th><th>年齡</th><th>資料類型</th></tr></thead><tbody>${roster.slice(0,12).map(p=>`<tr><td>${esc(p.name)}</td><td>${p.position}</td><td>${p.age}</td><td><span class="tag fake">虛擬示範</span></td></tr>`).join("")}</tbody></table></div><p class="field-help">開局會為六支球隊建立完整的 26 人虛擬示範名單，真實歷史球員不會被冒充成現役球員。</p></div>`;
@@ -97,7 +109,14 @@ function render(){
  const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",settings:"聯盟設定"};
  $("#page-title").textContent=titles[page]||"球團總覽";$("#season-label").textContent=state.season+" 球季";
  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,settings:settingsPage};
- $("#page-content").innerHTML=(pages[page]||dashboard)();
+ try{
+  $("#page-content").innerHTML=(pages[page]||dashboard)();
+ }catch(error){
+  console.error("Page render failed:",error);
+  $("#page-content").innerHTML=`<div class="panel render-error"><h3>這個頁面暫時無法顯示</h3><p>存檔已載入，但頁面資料有缺漏或格式不相容。你的原始存檔不會因為這個提示而被刪除。</p><p class="field-help">錯誤資訊：${esc(error?.message||error)}</p><div class="quick-actions"><button class="button button-quiet" id="retry-render-btn">重新載入頁面</button><button class="button button-quiet" id="export-recovery-btn">匯出目前存檔備份</button></div></div>`;
+  $("#retry-render-btn")?.addEventListener("click",()=>render());
+  $("#export-recovery-btn")?.addEventListener("click",exportSave);
+ }
  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
  const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
  document.querySelectorAll("[data-go-page]").forEach(b=>b.addEventListener("click",()=>{page=b.dataset.goPage;render();}));
