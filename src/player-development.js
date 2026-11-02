@@ -1,3 +1,4 @@
+import { getCoachBonus } from "./staff-engine.js";
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 export function developPlayers(state){
  const focus=state.trainingFocus||"balanced";
@@ -12,7 +13,7 @@ export function developPlayers(state){
   const facility=p.clubId===state.clubId?1+Math.max(0,(state.trainingLevel||1)-1)*.1:.82;
   for(const key of keys){
    if(!Number.isFinite(Number(ratings[key])))continue;
-   const delta=ageRate*facility*(.7+random()*.6);
+   const delta=ageRate*facility*(.7+random()*.6)+getCoachBonus(state,p,key);
    ratings[key]=clamp(Math.round((Number(ratings[key])+delta)*10)/10,20,99);
   }
   return {...p,ratings};
