@@ -310,7 +310,7 @@ export function executeSacrificeBunt(game,teamId){
  if(game.outs>=2||(!game.bases[0]&&!game.bases[1]))throw new Error("需要一、二壘有跑者且未滿兩出局");
  const batter=currentBatter(game),pitcher=pitcherFor(game),defense=game.lineups[teamOnField(game)].map(id=>rating(game.players[id],"fielding")).reduce((a,b)=>a+b,0)/9;
  const success=clamp(.72+(rating(batter,"contact")-50)*.002-(defense-50)*.001,.48,.9),good=random(game)<success;
- const bs=statsFor(game.batterStats,batter.id),ps=statsFor(game.pitcherStats,pitcher.id);bs.PA++;if(!good)bs.AB++;
+ const bs=statsFor(game.batterStats,batter.id),ps=statsFor(game.pitcherStats,pitcher.id);bs.PA++;game.pitcherBattersFaced??={};game.pitcherBattersFaced[pitcher.id]=(game.pitcherBattersFaced[pitcher.id]||0)+1;if(!good)bs.AB++;
  if(good){
   bs.SH++;const first=pickFielder(game,teamOnField(game),["1B"]);if(first)fieldingLine(game,first.id).PO++;if(game.bases[2]){const runner=game.bases[2];recordRun(game,teamId,runner);bs.RBI++;chargeEarnedRun(game,pitcher.id,runner);}
   game.bases=[null,game.bases[0],game.bases[1]];
@@ -327,6 +327,7 @@ export function issueIntentionalWalk(game,teamId){
 }
 export function changePitcher(game,teamId,pitcherId){
  if(game.status!=="live"||teamOnField(game)!==teamId)throw new Error("只能在本隊守備時更換投手");
+ if(game.currentPA)throw new Error("請等目前打席結束後再更換投手");
  const currentId=game.pitcherId[teamId],injured=game.injuries.some(x=>x.playerId===currentId);
  if(!injured&&(game.pitcherBattersFaced?.[currentId]||0)<3)throw new Error("目前投手尚未面對滿三名打者，除非投手受傷，否則不能提前換投。");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
