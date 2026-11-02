@@ -112,3 +112,11 @@ test("free-agent signings also reserve the annual salary before accepting",()=>{
  assert.throws(()=>signFreeAgent(s,{playerId:p.id,years:2,salary:100000000}),/可用資金不足/);
  assert.ok(s.freeAgents.some(x=>x.id===p.id));
 });
+
+test("retired historical foreign players cannot be signed again",()=>{
+ const s=state(),retired=s.players.find(x=>x.clubId==="lions");
+ retired.clubId=null;retired.retired=true;retired.sourcePlayerId="retired-foreign-id";retired.foreign=true;
+ const candidate={id:"retired-market-entry",name:retired.name,sourcePlayerId:retired.sourcePlayerId,clubId:null,position:retired.position,age:retired.age,foreign:true,marketDemand:1000000,ratings:retired.ratings};
+ s.foreignMarket=[candidate];
+ assert.throws(()=>signForeignFreeAgent(s,{playerId:candidate.id,years:1,salary:1000000}),/已經退休/);
+});
