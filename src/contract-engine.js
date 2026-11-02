@@ -24,8 +24,9 @@ export function initializeContracts(players,season=2026){
  }
  return contracts;
 }
-export function contractDemand(player){
+export function contractDemand(player,state=null){
  const age=Number(player.age)||27,ageFactor=age<=24?1.12:age<=28?1.08:age<=32?1:.86;
+ if(Number(player.marketDemand)>0){const fan=Number(state?.fanbase)||5000,win=state?.wins+state?.losses?(Number(state.wins)||0)/(Number(state.wins||0)+Number(state.losses||0)):.5;const fanDiscount=Math.min(.18,Math.max(0,(fan-5000)/100000)),winDiscount=Math.min(.12,Math.max(0,(win-.5)*.24));return Math.max(100000,Math.round(player.marketDemand*(1-fanDiscount-winDiscount)/100000)*100000);}
  return Math.max(100000,Math.round(estimatePlayerSalary(player)*ageFactor/1000)*1000);
 }
 export function offerExtension(state,{playerId,salary,years=2}){
@@ -111,7 +112,7 @@ export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
  const roster=state.players.filter(x=>x.clubId===state.clubId&&x.rosterLevel!=="minor");
  if(roster.length>=30)throw new Error("一軍名單已達 30 人上限，請先釋出或下放球員");
  if(countForeignPlayers(roster)>=state.foreignLimit)throw new Error("一軍洋將名額已滿。請先下放或釋出現有洋將。");
- const term=Number(years),annual=Number(salary??contractDemand(p)),demand=contractDemand(p);
+ const term=Number(years),annual=Number(salary??contractDemand(p,state)),demand=contractDemand(p,state);
  if(!Number.isInteger(term)||term<1||term>5)throw new Error("合約年限須為 1 至 5 年");
  if(!Number.isFinite(annual)||annual<100000)throw new Error("年薪至少為 100,000 元");
  if(annual<demand*.9)throw new Error("球員拒絕報價，期望年薪約為 $"+demand.toLocaleString());
