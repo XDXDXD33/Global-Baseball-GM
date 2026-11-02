@@ -8,6 +8,7 @@ import { renderLineupPage, bindLineupPage, renderOperationsPage, bindOperationsP
 import { renderGamePage, bindGamePage } from "./game-ui.js";
 import { initializeContracts } from "./contract-engine.js";
 import { initializeAIClubFinances,runAIClubManagement } from "./ai-management.js";
+import { initializeStaff } from "./staff-engine.js";
 
 const $ = (s) => document.querySelector(s);
 const STORAGE_KEY = "global-baseball-gm-save-v1";
@@ -34,7 +35,7 @@ function load(){
    state.freeAgents=createFreeAgentPool(state.season||2026);state.tactics={};state.contracts={};state.seasonStats={batters:{},pitchers:{}};state.gameArchive=[];
    state.ticketPrice=350;state.trainingLevel=1;state.scoutingLevel=1;
   }
-  state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);for(const p of state.players){const c=state.contracts[p.id];if(c&&c.yearsRemaining==null){c.yearsRemaining=Number(c.years)||1;c.expirySeason=state.season+c.yearsRemaining-1;c.status="active";}}state.injuries??={};state.retiredPlayers??=[];state.minorLeague??=[];if(state.currentGame){state.currentGame.injuries??=[];state.currentGame.automaticRunnerIds??=[];state.currentGame.fieldingStats??={};state.currentGame.unavailable??={};state.currentGame.substitutedOut??=[];state.currentGame.commands??={};}state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;state.aiClubReports??=[];state.aiTradeProposals??=[];if(!state.aiClubFinances){initializeAIClubFinances(state);runAIClubManagement(state,{phase:"preseason"});}
+  state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);for(const p of state.players){const c=state.contracts[p.id];if(c&&c.yearsRemaining==null){c.yearsRemaining=Number(c.years)||1;c.expirySeason=state.season+c.yearsRemaining-1;c.status="active";}}state.injuries??={};state.retiredPlayers??=[];state.minorLeague??=[];if(state.currentGame){state.currentGame.injuries??=[];state.currentGame.automaticRunnerIds??=[];state.currentGame.fieldingStats??={};state.currentGame.unavailable??={};state.currentGame.substitutedOut??=[];state.currentGame.commands??={};}state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;state.aiClubReports??=[];state.aiTradeProposals??=[];initializeStaff(state);if(!state.aiClubFinances){initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});}
   return true;
  }catch(e){console.warn("Save data could not be read",e);return false;}
 }
