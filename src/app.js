@@ -7,6 +7,7 @@ import { renderStarMarket, bindStarMarket } from "./star-market.js";
 import { createInitialLeagueRoster, buildDefaultLineup, createLeagueSchedule, createFreeAgentPool, calculateStandings } from "./game-engine.js";
 import { renderLineupPage, bindLineupPage, renderOperationsPage, bindOperationsPage, renderTradePage, bindTradePage, renderFarmPage, bindFarmPage, renderFreeAgentsPage, bindFreeAgentsPage } from "./management-ui.js";
 import { renderGamePage, bindGamePage } from "./game-ui.js";
+import { createOverseasMarket } from "./overseas-market.js";
 import { initializeContracts } from "./contract-engine.js";
 import { initializeAIClubFinances,runAIClubManagement } from "./ai-management.js";
 import { initializeStaff } from "./staff-engine.js";
@@ -122,8 +123,8 @@ async function startCareer(e){
     const hasSeasonData=historical.realCount>0;
     const players=hasSeasonData?historical.players:createInitialLeagueRoster(year);
     const minorLeague=hasSeasonData?historical.minorLeague:[];
-    const foreignMarket=buildHistoricalForeignMarket(history,year,players,year,team.id);
-    state={version:3,leagueId:"cpbl",season:year,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague,draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit,wins:0,losses:0,budget:120000000,fanbase:8500,players,history,lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(year),currentGame:null,freeAgents:createFreeAgentPool(year),foreignMarket,tactics:{},contracts:initializeContracts(players,year),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString(),dataImport:{source:"CPBL Opendata",season:year,completeFiles:importResult?.completed||0,totalFiles:importResult?.total||107,errors:importResult?.errors||[]}};
+    const foreignMarket=buildHistoricalForeignMarket(history,year,players,year,team.id);const overseasMarket=createOverseasMarket();
+    state={version:3,leagueId:"cpbl",season:year,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague,draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit,overseasMarket,wins:0,losses:0,budget:120000000,fanbase:8500,players,history,lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(year),currentGame:null,freeAgents:createFreeAgentPool(year),foreignMarket,tactics:{},contracts:initializeContracts(players,year),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString(),dataImport:{source:"CPBL Opendata",season:year,completeFiles:importResult?.completed||0,totalFiles:importResult?.total||107,errors:importResult?.errors||[]}};
     initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});
     $("#career-dialog").close();persist();showGame();
     if(!hasSeasonData)alert("已建立球團，但目前沒有成功取得所選年份的歷史球員統計，已使用依國籍生成的虛構球員作為備援。可稍後到歷史資料庫重新匯入。");
@@ -159,27 +160,34 @@ function farmPage(){return renderFarmPage(state);}
 function freeAgentsPage(){return renderFreeAgentsPage(state);}
 function gamesPage(){return renderGamePage(state);}
 function rankingsPage(){
- const players=state.players.filter(p=>p.clubId===state.clubId),batters=Object.entries(state.seasonStats?.batters||{}),pitchers=Object.entries(state.seasonStats?.pitchers||{});
+ const players=state.players,batters=Object.entries(state.seasonStats?.batters||{}),pitchers=Object.entries(state.seasonStats?.pitchers||{});
  const table=(title,rows,cols)=>`<section class="panel"><h3>${title}</h3><div class="table-wrap"><table><thead><tr>${cols.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${cols.length}">目前尚無統計資料</td></tr>`}</tbody></table></div></section>`;
  const name=id=>esc(state.players.find(p=>p.id===id)?.name||id);
- const ratingRows=players.map(p=>[p,Math.round(estimatePlayerAbility(p))]).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([p,v],i)=>[`#${i+1}`,esc(p.name),p.position,v]);
+ const ratingRows=players.map(p=>[p,Math.round(estimatePlayerAbility(p))]).sort((a,b)=>b[1]-a[1]).slice(0,30).map(([p,v],i)=>[`#${i+1}`,esc(p.name),esc(club(p.clubId)?.short||"自由球員"),p.position,v]);
  const batting=(key,label)=>batters.map(([id,s])=>({id,s,rate:key==="AVG"?(s.AB?(s.H||0)/s.AB:0):Number(s[key]||0)})).filter(x=>key!=="AVG"||x.s.AB>=10).sort((a,b)=>b.rate-a.rate).slice(0,20).map((x,i)=>[`#${i+1}`,name(x.id),x.s.AB||0,x.s.H||0,key==="AVG"?x.rate.toFixed(3):x.rate]);
  const pitching=(key,label)=>pitchers.map(([id,s])=>({id,s,rate:key==="ERA"?(s.outs?((s.ER||0)*27/s.outs):99):Number(s[key]||0)})).filter(x=>key!=="ERA"||x.s.outs>=9).sort((a,b)=>key==="ERA"?a.rate-b.rate:b.rate-a.rate).slice(0,20).map((x,i)=>[`#${i+1}`,name(x.id),Math.floor((x.s.outs||0)/3)+`.${(x.s.outs||0)%3}`,x.s.H||0,x.s.K||0,key==="ERA"?x.rate.toFixed(2):x.rate]);
- return `<section class="panel"><h3>球員能力排行榜</h3><p class="field-help">依目前球團球員能力估值排序。</p>${table("綜合能力",ratingRows,["排名","球員","守位","能力"])}</section>${table("打擊率 TOP 20",batting("AVG","AVG"),["排名","球員","打數","安打","打擊率"])}${table("全壘打 TOP 20",batting("HR","HR"),["排名","球員","打數","安打","全壘打"])}${table("打點 TOP 20",batting("RBI","RBI"),["排名","球員","打數","安打","打點"])}${table("投手三振 TOP 20",pitching("K","K"),["排名","投手","局數","被安打","三振","三振數"])}${table("投手防禦率 TOP 20",pitching("ERA","ERA"),["排名","投手","局數","被安打","三振","ERA"])}`;
+ return `<section class="panel"><h3>球員能力排行榜</h3><p class="field-help">依目前球團球員能力估值排序。</p>${table("全聯盟綜合能力 TOP 30",ratingRows,["排名","球員","球隊","守位","能力"])}</section>${table("打擊率 TOP 20",batting("AVG","AVG"),["排名","球員","打數","安打","打擊率"])}${table("全壘打 TOP 20",batting("HR","HR"),["排名","球員","打數","安打","全壘打"])}${table("打點 TOP 20",batting("RBI","RBI"),["排名","球員","打數","安打","打點"])}${table("投手三振 TOP 20",pitching("K","K"),["排名","投手","局數","被安打","三振","三振數"])}${table("投手防禦率 TOP 20",pitching("ERA","ERA"),["排名","投手","局數","被安打","三振","ERA"])}`;
 }
+function overseasPage(){
+ const market=state.overseasMarket||createOverseasMarket();state.overseasMarket=market;
+ const cards=market.map(p=>{const c=contractDemand(p,state);return `<article class="overseas-card"><div class="overseas-card-head"><div><span class="tag real">${esc(p.league)}</span><h3>${esc(p.name)}</h3><p>${esc(p.english)} · ${esc(p.team)}</p></div><strong>${p.estimatedCPBLAbility} OVR</strong></div><div class="overseas-stats"><span>AVG <b>${p.externalStats.AVG?.toFixed(3)||"—"}</b></span><span>OPS <b>${p.externalStats.OPS?.toFixed(3)||"—"}</b></span><span>HR <b>${p.externalStats.HR||0}</b></span><span>守備 <b>${p.ratings.fielding}</b></span><span>年齡 <b>${p.age}</b></span><span>成績年份 <b>${p.season}</b></span></div><p class="field-help">預估年薪需求：$ ${c.toLocaleString()} · 估值依公開聯盟成績換算，並非球員官方能力評分。</p><form class="overseas-offer" data-overseas-id="${esc(p.id)}"><label>年薪報價<input name="salary" type="number" min="100000" step="100000" value="${c}" required></label><label>合約年限<select name="years">${[1,2,3,4,5].map(n=>`<option value="${n}">${n} 年</option>`).join("")}</select></label><button class="button button-primary" type="submit">聯繫並簽下球員</button></form><a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">查看原始成績來源</a></article>`;}).join("");
+ return `<section class="panel"><div class="panel-heading-row"><div><h3>海外聯賽球星窗口</h3><p class="field-help">聯繫 MLB、NPB、KBO 球星。能力值由實際打擊數據、聯盟強度係數及守備估值換算；薪資會依球團財力、球迷數與勝率調整。球星越頂尖，薪資與簽約金越高。</p></div><span class="tag real">${market.length} 位海外球星</span></div><div class="setting-row"><div><span>目前球團資金</span><small>簽約金會立即扣除，年薪會納入後續薪資支出</small></div><b>${Math.round(state.budget).toLocaleString()}</b></div><div class="overseas-grid">${cards}</div><p id="overseas-result" class="field-help" aria-live="polite"></p></section>`;
+}
+function bindOverseasPage(){document.querySelectorAll(".overseas-offer").forEach(form=>form.addEventListener("submit",e=>{e.preventDefault();const d=new FormData(form);try{const result=signForeignFreeAgent(state,{playerId:form.dataset.overseasId,years:Number(d.get("years")),salary:Number(d.get("salary"))});persist();render();alert(result.player.name+" 已正式加入球團！");}catch(error){const out=document.querySelector("#overseas-result");if(out)out.textContent="簽約失敗："+error.message;}}));}
 function settingsPage(){
  return `<div class="panel"><h3>聯盟規則</h3><div class="setting-row"><div><span>聯盟</span><small>第一個可玩版本以 CPBL 為核心</small></div><b>中華職棒</b></div><div class="setting-row"><div><span>洋將名額上限</span><small>開局自訂，允許 0 至 13 人</small></div><b>${state.foreignLimit} 人</b></div><div class="setting-row"><div><span>球季賽程</span><small>六隊循環賽，每隊 120 場</small></div><b>360 場</b></div><div class="setting-row"><div><span>比賽模式</span><small>逐球操作、逐打席操作、快速模擬共用引擎</small></div><b>Live + Sim</b></div></div><div class="panel"><h3>存檔管理</h3><p class="field-help">球團經營進度儲存在此瀏覽器。歷史資料另存 IndexedDB。建議定期匯出 JSON 備份。</p><button id="export-btn" class="button button-quiet">匯出存檔 JSON</button></div>`;
 }
 function render(){
  if(!state)return;
+ if(!Array.isArray(state.overseasMarket))state.overseasMarket=createOverseasMarket();
  if(page==="operations"&&state.foreignMarketSeason!==state.season){state.foreignMarket=buildHistoricalForeignMarket(state.history||emptyHistory(),state.season,state.players,state.season,state.clubId);state.foreignMarketSeason=state.season;}
  $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
- const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",trades:"交易中心",farm:"二軍管理",freeagents:"自由球員",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",rankings:"球員排行榜",settings:"聯盟設定"};
+ const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",trades:"交易中心",farm:"二軍管理",freeagents:"自由球員",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",rankings:"球員排行榜",overseas:"海外球星",settings:"聯盟設定"};
  $("#page-title").textContent=titles[page]||"球團總覽";$("#season-label").textContent=state.season+" 球季";
  try{
   // Build the page registry inside the guarded block so a missing renderer
   // cannot abort the entire app before the recovery UI is available.
-  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,trades:tradePage,farm:farmPage,freeagents:freeAgentsPage,history:historyPage,stars:starPage,league:leaguePage,rankings:rankingsPage,settings:settingsPage};
+  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,trades:tradePage,farm:farmPage,freeagents:freeAgentsPage,history:historyPage,stars:starPage,league:leaguePage,rankings:rankingsPage,overseas:overseasPage,settings:settingsPage};
   $("#page-content").innerHTML=(pages[page]||dashboard)();
  }catch(error){
   console.error("Page render failed:",error);
@@ -198,6 +206,7 @@ function render(){
  if(page==="farm")bindFarmPage(state,persist,render);
  if(page==="freeagents")bindFreeAgentsPage(state,persist,render);
  if(page==="history")bindHistoryPage(state,persist,render);
+ if(page==="overseas")bindOverseasPage();
  if(page==="stars")bindStarMarket(y=>{starSeason=y;render();});
 }
 function exportSave(){
