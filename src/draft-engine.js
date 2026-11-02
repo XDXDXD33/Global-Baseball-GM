@@ -1,9 +1,8 @@
 import { LEAGUE } from "./data.js";
+import { generateFictionalName } from "./fictional-player-generator.js";
 import { estimatePlayerAbility, estimatePlayerSalary } from "./rules.js";
 
 const POSITIONS = ["C","1B","2B","3B","SS","LF","CF","RF","SP","RP"];
-const GIVEN = ["林","陳","張","王","李","黃","吳","劉","蔡","楊","周","鄭","許","謝","郭","洪","曾","邱"];
-const NAMES = ["冠宇","承翰","柏廷","子翔","昱廷","俊豪","家豪","宇軒","品睿","奕辰","哲瑋","彥廷","凱翔","皓宇","承恩","宥廷","柏翰","志豪"];
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const hash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 function rng(seed){let x=seed>>>0;return()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};}
@@ -16,7 +15,7 @@ export function generateDraftClass(season=2027,count=30){
    ?{velocity:clamp(base+(random()*10-5),25,75),control:clamp(base+(random()*10-5),25,75),movement:clamp(base+(random()*10-5),25,75),stamina:clamp(base+(random()*12-6),25,75),fielding:clamp(base-5,20,70)}
    :{contact:clamp(base+(random()*10-5),25,75),power:clamp(base+(random()*12-6),25,75),eye:clamp(base+(random()*10-5),25,75),speed:clamp(base+(random()*14-7),25,75),fielding:clamp(base+(random()*10-5),25,75),range:clamp(base+(random()*10-5),25,75)};
   const ceiling=clamp(base+15+Math.floor(random()*24),45,92);
-  out.push({id:"prospect-"+season+"-"+String(i+1).padStart(3,"0"),name:GIVEN[Math.floor(random()*GIVEN.length)]+NAMES[Math.floor(random()*NAMES.length)],age,position,ratings:Object.fromEntries(Object.entries(ratings).map(([k,v])=>[k,Math.round(v)])),potential:ceiling,scoutingConfidence:Math.round(45+random()*45),source:"虛構新秀",foreign:false,clubId:null,season});
+  out.push({id:"prospect-"+season+"-"+String(i+1).padStart(3,"0"),name:generateFictionalName("TW","draft-"+season+"-"+i),age,position,ratings:Object.fromEntries(Object.entries(ratings).map(([k,v])=>[k,Math.round(v)])),potential:ceiling,scoutingConfidence:Math.round(45+random()*45),source:"虛構新秀",foreign:false,clubId:null,season});
  }
  return out;
 }
