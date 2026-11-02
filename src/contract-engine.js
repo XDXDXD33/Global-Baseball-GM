@@ -59,6 +59,11 @@ function placeSignedPlayer(state,player){
  }
  if(weakest&&ability>score)cfg.lineup[weakest.index]=player.id;
 }
+export function repairSignedPlayerLineups(state,teamId=state.clubId){
+ const signed=state.players.filter(p=>p.clubId===teamId&&p.contractStatus==="signed"&&!p.retired);
+ for(const player of signed)placeSignedPlayer(state,player);
+ return signed.length;
+}
 function repairLineup(state,teamId){
  state.lineups??={};
  const cfg=state.lineups[teamId]||{lineup:[],rotation:[],bullpen:[]};
