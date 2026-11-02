@@ -180,7 +180,7 @@ function settingsPage(){
 function bindUniversalPlayerTables(){
  const root=$("#page-content");if(!root)return;
  for(const table of root.querySelectorAll("table")){
-  if(table.closest(".boxscore-grid")||table.classList.contains("score-table"))continue;
+  if(table.closest(".boxscore-grid")||table.classList.contains("score-table")||table.id==="roster-table")continue;
   const headers=[...table.querySelectorAll("thead th")].map(x=>x.textContent.trim());
   if(!headers.some(x=>/球員|投手|新秀|姓名|候選洋將/.test(x))||headers.some(x=>/^(PA|AB|IP|打數|打席)$/.test(x)))continue;
   if(table.dataset.playerTools==="ready")continue;table.dataset.playerTools="ready";
