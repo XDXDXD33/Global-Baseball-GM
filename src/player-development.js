@@ -13,7 +13,7 @@ export function developPlayers(state){
   const facility=p.clubId===state.clubId?1+Math.max(0,(state.trainingLevel||1)-1)*.1:.82;
   for(const key of keys){
    if(!Number.isFinite(Number(ratings[key])))continue;
-   const delta=ageRate*facility*(.7+random()*.6)+getCoachBonus(state,p,key);
+   const delta=ageRate*facility*(.7+random()*.6)+(ageRate>0?getCoachBonus(state,p,key):0);
    ratings[key]=clamp(Math.round((Number(ratings[key])+delta)*10)/10,20,99);
   }
   return {...p,ratings};
