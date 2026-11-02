@@ -140,6 +140,8 @@ export function buildHistoricalForeignMarket(history,year,activePlayers=[],seed=
   const careerYears=(profile.seasons||[]).map(Number).filter(y=>y<=Number(year));
   const debut=careerYears.length?Math.min(...careerYears):g.year;
   p.marketEra=Math.floor(debut/10)*10;p.marketSeason=g.year;
+  p.careerSeasons=careerYears.length;
+  p.careerGames=[...(history.batting||[]),...(history.pitching||[])].filter(x=>x.playerId===g.playerId&&x.year<=Number(year)).reduce((sum,x)=>sum+number(x.stats?.G),0);
   p.source="CPBL Opendata · "+g.year+" 球季歷史成績";
   real.push(p);
  }
@@ -151,5 +153,5 @@ export function buildHistoricalForeignMarket(history,year,activePlayers=[],seed=
   if(used.has(p.name))p.name=generateFictionalPlayer({id:id+"-unique",seed:seed+"|unique",country}).name;
   used.add(p.name);p.contractStatus="free-agent";p.marketEra=Math.floor(Number(year)/10)*10;p.marketSeason=Number(year);p.source="虛構國際洋將市場";p.confidence=0;fictional.push(p);
  }
- return [...real,...fictional].sort((a,b)=>(b.dataKind==="real")-(a.dataKind==="real")||a.name.localeCompare(b.name));
+ return [...real.sort((a,b)=>(b.careerSeasons||0)-(a.careerSeasons||0)||(b.careerGames||0)-(a.careerGames||0)),...fictional].sort((a,b)=>(b.dataKind==="real")-(a.dataKind==="real")||(b.careerSeasons||0)-(a.careerSeasons||0)||(b.careerGames||0)-(a.careerGames||0)||a.name.localeCompare(b.name));
 }
