@@ -82,7 +82,7 @@ export function demotePlayer(state,playerId){
  const battingPositions=["C","1B","2B","3B","SS","LF","CF","RF","DH"];
  if((cfg.lineup||[]).includes(playerId)){
   const index=cfg.lineup.indexOf(playerId),used=new Set(cfg.lineup.filter(id=>id!==playerId));
-  const replacement=remaining.find(x=>!["SP","RP","P"].includes(x.position)&&!used.has(x.id)&&({C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"],DH:["C","1B","2B","3B","SS","LF","CF","RF","OF","DH"]}[battingPositions[index]]||[]).includes(x.position));
+  let replacement=remaining.find(x=>!["SP","RP","P"].includes(x.position)&&!used.has(x.id)&&({C:["C"],"1B":["1B"],"2B":["2B","SS"],"3B":["3B","1B"],SS:["SS","2B"],LF:["LF","OF","CF","RF"],CF:["CF","OF"],RF:["RF","OF","CF"],DH:["C","1B","2B","3B","SS","LF","CF","RF","OF","DH"]}[battingPositions[index]]||[]).includes(x.position));
   if(!replacement){const flexible=remaining.find(x=>!["SP","RP","P"].includes(x.position)&&!used.has(x.id));if(flexible)replacement=flexible;}
   if(!replacement)throw new Error("目前沒有可用野手替補，請先補足替補球員再下放");
   cfg.lineup[index]=replacement.id;
