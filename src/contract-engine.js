@@ -107,7 +107,8 @@ export function advanceContractYear(state){
 }
 
 export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
- const p=state.foreignMarket?.find(x=>x.id===playerId);
+ const market=state.overseasMarket?.some(x=>x.id===playerId)?state.overseasMarket:state.foreignMarket;
+ const p=market?.find(x=>x.id===playerId);
  if(!p||!p.foreign)throw new Error("這名外籍球員目前不在招募市場");
  const roster=state.players.filter(x=>x.clubId===state.clubId&&x.rosterLevel!=="minor");
  if(roster.length>=30)throw new Error("一軍名單已達 30 人上限，請先釋出或下放球員");
@@ -126,7 +127,7 @@ export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
  const signed={...p,id:"signed-"+p.id+"-"+state.season,clubId:state.clubId,rosterLevel:"first",contractStatus:"signed",source:p.source||"國際洋將招募市場"};
  state.players.push(signed);state.contracts??={};
  state.contracts[signed.id]={salary:Math.round(annual),yearsRemaining:term,expirySeason:state.season+term-1,status:"active",signedSeason:state.season,signingBonus:bonus};
- state.budget-=bonus;state.foreignMarket=state.foreignMarket.filter(x=>x.id!==playerId);
+ state.budget-=bonus;if(state.overseasMarket?.some(x=>x.id===playerId))state.overseasMarket=state.overseasMarket.filter(x=>x.id!==playerId);else state.foreignMarket=state.foreignMarket.filter(x=>x.id!==playerId);
  const cfg=state.lineups[state.clubId]||(state.lineups[state.clubId]={lineup:[],rotation:[],bullpen:[]});
  if(["RP","P"].includes(signed.position))cfg.bullpen.push(signed.id);
  if(signed.position==="SP"&&cfg.rotation.length<5)cfg.rotation.push(signed.id);
