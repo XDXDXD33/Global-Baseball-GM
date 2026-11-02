@@ -91,7 +91,9 @@ function signForAI(state,teamId,player,strategy){
  if(player.foreign&&foreign>=state.foreignLimit)return false;
  const annual=money(estimatePlayerSalary(player)* (strategy==="contend"?1.12:1.04));
  const bonus=money(annual*.2);
- if(finance.budget<bonus)return false;
+ const currentPayroll=roster.reduce((sum,p)=>sum+(Number(state.contracts?.[p.id]?.salary)||estimatePlayerSalary(p)),0);
+ const staffReserve=Object.values(state.staffByClub?.[teamId]||{}).reduce((sum,p)=>sum+(Number(p.monthlySalary)||0),0)*12;
+ if(finance.budget-bonus-currentPayroll-annual-staffReserve<0)return false;
  const signed={...player,clubId:teamId,contractStatus:"signed"};
  const existingIndex=state.players.findIndex(p=>p.id===player.id);
  if(existingIndex>=0)state.players[existingIndex]={...state.players[existingIndex],...signed};else state.players.push(signed);
@@ -112,7 +114,10 @@ function renewAIContracts(state,teamId){
   const retain=playerAge<=34&&(rating>=48||playerAge<=25);
   if(!retain)continue;
   const salary=money(estimatePlayerSalary(p)*(strategy==="contend"?1.08:1.02)),bonus=money(salary*.05);
-  if(finance.budget<bonus)continue;
+  const currentPayroll=teamRoster(state,teamId).reduce((sum,x)=>sum+(Number(state.contracts?.[x.id]?.salary)||estimatePlayerSalary(x)),0);
+  const staffReserve=Object.values(state.staffByClub?.[teamId]||{}).reduce((sum,x)=>sum+(Number(x.monthlySalary)||0),0)*12;
+  const payrollAfter=currentPayroll-(Number(contract.salary)||estimatePlayerSalary(p))+salary;
+  if(finance.budget-bonus-payrollAfter-staffReserve<0)continue;
   const years=playerAge<=25?3:2;
   state.contracts[p.id]={salary,yearsRemaining:years,expirySeason:state.season+years-1,status:"active",signedSeason:state.season,signingBonus:bonus};
   finance.budget-=bonus;
