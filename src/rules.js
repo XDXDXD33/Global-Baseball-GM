@@ -2,8 +2,8 @@ export function validateForeignLimit(v){const n=Number(v);if(!Number.isInteger(n
 export const countForeignPlayers=ps=>ps.filter(p=>p.foreign===true&&p.rosterLevel!=="minor").length;
 export const canRegisterForeignPlayer=(ps,n)=>countForeignPlayers(ps)<validateForeignLimit(n);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const BAT={contact:.22,power:.2,eye:.14,avoidK:.1,speed:.1,stealing:.06,fielding:.08,arm:.05,range:.05};
-const PIT={velocity:.2,control:.22,movement:.22,stamina:.14,fielding:.04,arm:.04,range:.04,eye:.05,avoidK:.05};
+const BAT={contact:.2,power:.18,eye:.13,avoidK:.09,speed:.09,stealing:.05,fielding:.12,arm:.07,range:.07};
+const PIT={velocity:.19,control:.2,movement:.2,stamina:.13,fielding:.07,arm:.06,range:.06,eye:.05,avoidK:.04};
 export function estimatePlayerAbility(p){const r=p.ratings||{},w=/^(SP|RP|P)$/.test(p.position||"")?PIT:BAT,e=Object.entries(w).filter(([k])=>Number.isFinite(r[k]));if(!e.length)return 50;const total=e.reduce((s,[,v])=>s+v,0);return clamp(e.reduce((s,[k,v])=>s+r[k]*v,0)/total,0,100);}
 export function calculateRatingConfidence(p){if(Number.isFinite(p.confidence))return clamp(p.confidence,0,1);return clamp((p.source?.25:0)+(p.dataKind==="real"&&p.identityStatus==="verified"?.25:0)+Math.min(Array.isArray(p.seasons)?p.seasons.length:0,5)*.08+(Object.values(p.ratings||{}).filter(Number.isFinite).length>=5?.1:0),0,.95);}
 export function estimatePlayerRatings(p){return {overall:Math.round(estimatePlayerAbility(p)*10)/10,attributes:{...(p.ratings||{})},confidence:calculateRatingConfidence(p),scale:"0-100",methodVersion:"cpbl-rating-v1"};}
