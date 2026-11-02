@@ -1,4 +1,5 @@
 import { LEAGUE } from "./data.js";
+import { calculateAvailableBudget } from "./contract-engine.js";
 const ROLES=["hitting","pitching","fielding","scout","medical"];
 const LABELS={hitting:"打擊教練",pitching:"投手教練",fielding:"守備教練",scout:"球探",medical:"防護員"};
 const NAMES=["林","陳","張","王","李","黃","吳","劉","蔡","楊","周","鄭","許","謝","郭","洪"];
@@ -36,8 +37,9 @@ export function hireStaff(state,{candidateId,role}){
  const candidate=state.staffMarket.find(x=>x.id===candidateId&&x.role===role);
  if(!candidate)throw new Error("這位人才已不在市場，請重新整理名單");
  const signingFee=Math.round(candidate.monthlySalary*2);
- if(teamBudget(state)<signingFee)throw new Error("球團資金不足，無法支付聘任費");
  const old=state.staffByClub[state.clubId][role];
+ const availableAfter=calculateAvailableBudget(state)+(Number(old?.monthlySalary)||0)*12-(Number(candidate.monthlySalary)||0)*12-signingFee;
+ if(availableAfter<0)throw new Error("扣除下一年度薪資預留後，可用資金不足，無法聘任這位人才。");
  if(old)state.staffMarket.push({...old,clubId:null,availableSeason:state.season});
  state.staffByClub[state.clubId][role]={...candidate,clubId:state.clubId,hiredSeason:state.season,signingFee};
  state.staffMarket=state.staffMarket.filter(x=>x.id!==candidateId);
