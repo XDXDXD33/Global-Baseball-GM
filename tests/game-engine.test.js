@@ -193,3 +193,10 @@ test("manual pitcher change is blocked during an active plate appearance",()=>{
  g.pitcherBattersFaced[g.pitcherId.brothers]=3;g.currentPA={balls:1,strikes:0};
  assert.throws(()=>changePitcher(g,"brothers",next),/打席結束/);
 });
+
+test("an injured pitcher may be replaced before facing three batters",()=>{
+ const fixture={id:"injured-pitcher",season:2026,matchday:1,homeId:"brothers",awayId:"lions"};
+ const g=createGame({fixture,players,lineups,seed:41,userTeamId:"brothers"}),old=g.pitcherId.brothers,next=lineups.brothers.bullpen[0];
+ g.injuries.push({playerId:old,clubId:"brothers",daysOut:4});g.currentPA={pitcherId:old,balls:1,strikes:0};
+ changePitcher(g,"brothers",next);assert.equal(g.pitcherId.brothers,next);
+});
