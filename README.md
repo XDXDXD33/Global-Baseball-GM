@@ -22,6 +22,15 @@ Browser-based baseball GM simulation focused on CPBL, designed for future global
 - Official CPBL half-season postseason qualification, tiebreaker, series advantages and home-field rules.
 - Multi-year player contracts, salary/term negotiation, free-agent offers, release compensation, contract expiry and player retirement.
 
+## Historical seasons and player identity
+- New franchise setup lets the player select a historical season from 1990–2024.
+- First-time setup imports the CPBL Opendata player master, standings, and annual batting/pitching/fielding CSVs from 1990–2024 into browser IndexedDB, then builds the selected season's playable rosters from player IDs and team-era mappings.
+- Real player names and source IDs are kept separate from generated fictional players. Season-stat-derived ratings are simulation estimates, not official scouting grades.
+- The six-team game schedule remains the current playable league structure. In seasons when a modern franchise did not yet exist, that club receives generated fictional players rather than incorrectly assigning historical players to a team they never played for. Defunct franchises not represented by one of the six current playable IDs remain historical records, not silently reassigned.
+- The international recruitment market combines real foreign players found in the imported history with clearly marked fictional players. The market shows real-player counts by first CPBL appearance decade; if a decade has fewer than ten verifiable records, the game reports the actual count rather than inventing real identities.
+- Fictional player names are generated from nationality-specific name pools (Taiwan, United States, Dominican Republic, Venezuela, Puerto Rico, Cuba, Japan, Korea, Mexico, Panama and Colombia). The generator is shared by initial rosters, free agents, international market candidates and draft prospects.
+- First-team foreign-player limits are enforced when signing or promoting a foreign player. Foreign players can be moved to the minor-league roster to free a first-team slot.
+
 ## Historical data source
 The initial compatible source is [CPBL Opendata](https://github.com/ldkrsi/cpbl-opendata). Its repository lists annual CPBL batting, pitching and fielding CSVs from 1990 through 2024 and includes an MIT license. The curator documents ID changes after the 2021 official-site migration and other historical data caveats. The MIT repository license does not automatically resolve rights in underlying CPBL league data, so third-party CSV files are not bundled with this game.
 
