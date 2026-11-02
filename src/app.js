@@ -177,6 +177,22 @@ function bindOverseasPage(){document.querySelectorAll(".overseas-offer").forEach
 function settingsPage(){
  return `<div class="panel"><h3>聯盟規則</h3><div class="setting-row"><div><span>聯盟</span><small>第一個可玩版本以 CPBL 為核心</small></div><b>中華職棒</b></div><div class="setting-row"><div><span>洋將名額上限</span><small>開局自訂，允許 0 至 13 人</small></div><b>${state.foreignLimit} 人</b></div><div class="setting-row"><div><span>球季賽程</span><small>六隊循環賽，每隊 120 場</small></div><b>360 場</b></div><div class="setting-row"><div><span>比賽模式</span><small>逐球操作、逐打席操作、快速模擬共用引擎</small></div><b>Live + Sim</b></div></div><div class="panel"><h3>存檔管理</h3><p class="field-help">球團經營進度儲存在此瀏覽器。歷史資料另存 IndexedDB。建議定期匯出 JSON 備份。</p><button id="export-btn" class="button button-quiet">匯出存檔 JSON</button></div>`;
 }
+function bindUniversalPlayerTables(){
+ const root=$("#page-content");if(!root)return;
+ for(const table of root.querySelectorAll("table")){
+  if(table.closest(".boxscore-grid")||table.classList.contains("score-table"))continue;
+  const headers=[...table.querySelectorAll("thead th")].map(x=>x.textContent.trim());
+  if(!headers.some(x=>/球員|投手|新秀|姓名|候選洋將/.test(x))||headers.some(x=>/^(PA|AB|IP|打數|打席)$/.test(x)))continue;
+  if(table.dataset.playerTools==="ready")continue;table.dataset.playerTools="ready";
+  const wrap=table.closest(".table-wrap")||table.parentElement,tools=document.createElement("div");tools.className="player-table-tools";
+  tools.innerHTML='<label>搜尋<input type="search" placeholder="搜尋球員姓名、守位或球隊"></label><label>年齡下限<input type="number" min="15" max="60" placeholder="不限"></label><label>年齡上限<input type="number" min="15" max="60" placeholder="不限"></label><label>能力下限<input type="number" min="0" max="100" placeholder="不限"></label><label>能力上限<input type="number" min="0" max="100" placeholder="不限"></label>';
+  wrap.parentElement.insertBefore(tools,wrap);
+  const controls=[...tools.querySelectorAll("input")],body=table.tBodies[0];
+  const apply=()=>{const [q,amin,amax,vmin,vmax]=controls.map(x=>x.value),idxAge=headers.findIndex(x=>/年齡/.test(x)),idxAbility=headers.findIndex(x=>/能力|OVR/.test(x));for(const row of body.rows){if(row.classList.contains("team-total-row"))continue;const cells=[...row.cells],age=idxAge>=0?Number(cells[idxAge]?.textContent)||0:null,ability=idxAbility>=0?Number(cells[idxAbility]?.textContent)||0:null;const ok=(!q||row.textContent.toLowerCase().includes(q.toLowerCase()))&&(amin===""||age===null||age>=Number(amin))&&(amax===""||age===null||age<=Number(amax))&&(vmin===""||ability===null||ability>=Number(vmin))&&(vmax===""||ability===null||ability<=Number(vmax));row.hidden=!ok;}};
+  controls.forEach(x=>x.addEventListener("input",apply));
+  table.querySelectorAll("thead th").forEach((th,index)=>{th.classList.add("player-sortable");th.title="點擊排序";th.addEventListener("click",()=>{const dir=th.dataset.sortDir==="asc"?"desc":"asc";table.querySelectorAll("thead th").forEach(x=>delete x.dataset.sortDir);th.dataset.sortDir=dir;const rows=[...body.rows].filter(x=>!x.classList.contains("team-total-row"));rows.sort((a,b)=>{const av=a.cells[index]?.textContent.trim()||"",bv=b.cells[index]?.textContent.trim()||"",an=Number(av.replace(/[^0-9.-]/g,"")),bn=Number(bv.replace(/[^0-9.-]/g,""));const numeric=av!==""&&bv!==""&&Number.isFinite(an)&&Number.isFinite(bn);return (numeric?an-bn:av.localeCompare(bv,"zh-Hant"))*(dir==="asc"?1:-1);});rows.forEach(x=>body.insertBefore(x,body.querySelector(".team-total-row")));apply();});});
+ }
+}
 function render(){
  if(!state)return;
  if(!Array.isArray(state.overseasMarket))state.overseasMarket=createOverseasMarket();
@@ -195,6 +211,7 @@ function render(){
   $("#retry-render-btn")?.addEventListener("click",()=>render());
   $("#export-recovery-btn")?.addEventListener("click",exportSave);
  }
+ bindUniversalPlayerTables();
  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
  const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
  document.querySelectorAll("[data-go-page]").forEach(b=>b.addEventListener("click",()=>{page=b.dataset.goPage;render();}));
