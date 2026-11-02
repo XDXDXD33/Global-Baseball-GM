@@ -80,7 +80,7 @@ function startCareer(e){
   const team=club($("#team-select").value);
   const players=createInitialLeagueRoster(2026);
   state={version:2,leagueId:"cpbl",season:2026,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague:[],draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players,history:emptyHistory(),lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(2026),currentGame:null,freeAgents:createFreeAgentPool(2026),tactics:{},contracts:initializeContracts(players,2026),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString()};initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});
-  $("#career-dialog").close();showGame();persist();
+  $("#career-dialog").close();persist();showGame();
 }
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
 function dashboard(){
