@@ -1,6 +1,7 @@
 import { LEAGUE, DEMO_PLAYERS, RATING_LABELS } from "./data.js";
 import { validateForeignLimit, estimatePlayerAbility, estimatePlayerSalary, calculateRatingConfidence } from "./rules.js";
-import { renderRosterTools, bindRosterTools } from "./player-tools.js";
+import { bindRosterTools } from "./player-tools.js";
+import { renderRosterPage } from "./roster-ui.js";
 import { renderHistoryPage, bindHistoryPage } from "./history-ui.js";
 import { renderStarMarket, bindStarMarket } from "./star-market.js";
 import { createInitialLeagueRoster, buildDefaultLineup, createLeagueSchedule, createFreeAgentPool, calculateStandings } from "./game-engine.js";
@@ -95,6 +96,7 @@ function dashboard(){
  return `<div class="panel"><h3>${state.season} CPBL 聯盟戰績</h3><div class="table-wrap"><table><thead><tr><th>排名</th><th>球隊</th><th>場次</th><th>勝</th><th>敗</th><th>和</th><th>勝率</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td><b>${club(x.teamId).name}</b>${x.teamId===state.clubId?' <span class="tag fake">我的球隊</span>':''}</td><td>${x.games}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.ties}</td><td>${x.winPct.toFixed(3)}</td></tr>`).join("")}</tbody></table></div><p class="field-help">六隊循環賽程，每隊 120 場。比賽由同一套引擎逐球結算，AI 球隊也會實際模擬。</p></div>`;
 }
 
+function rosterPage(){return renderRosterPage(state,club,esc);}
 function historyPage(){return renderHistoryPage(state.history);}
 function starPage(){return renderStarMarket(state.history,starSeason);}
 function lineupPage(){return renderLineupPage(state);}
@@ -108,8 +110,10 @@ function render(){
  $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
  const titles={dashboard:"球團總覽",roster:"球員名單",lineup:"陣容與戰術",games:"賽程與比賽",operations:"球團營運",history:"歷史資料庫",stars:"經典球星",league:"聯盟戰況",settings:"聯盟設定"};
  $("#page-title").textContent=titles[page]||"球團總覽";$("#season-label").textContent=state.season+" 球季";
- const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,settings:settingsPage};
  try{
+  // Build the page registry inside the guarded block so a missing renderer
+  // cannot abort the entire app before the recovery UI is available.
+  const pages={dashboard,roster:rosterPage,lineup:lineupPage,games:gamesPage,operations:operationsPage,history:historyPage,stars:starPage,league:leaguePage,settings:settingsPage};
   $("#page-content").innerHTML=(pages[page]||dashboard)();
  }catch(error){
   console.error("Page render failed:",error);
