@@ -1,4 +1,5 @@
-import { estimatePlayerAbility } from "./rules.js";
+import { estimatePlayerAbility,estimatePlayerSalary } from "./rules.js";
+import { generateFictionalPlayer } from "./fictional-player-generator.js";
 const GROUPS=[["SP",4,p=>p.position==="SP"],["RP",9,p=>["RP","P"].includes(p.position)],["C",2,p=>p.position==="C"],["1B",2,p=>p.position==="1B"],["2B",2,p=>p.position==="2B"],["3B",2,p=>p.position==="3B"],["SS",2,p=>p.position==="SS"],["OF",5,p=>["LF","CF","RF","OF"].includes(p.position)]];
 export function calculateBestRoster(state,teamId=state.clubId){
  const active=(state.players||[]).filter(p=>p.clubId===teamId),farm=(state.minorLeague||[]).filter(p=>p.clubId===teamId),free=state.freeAgents||[];
@@ -6,7 +7,7 @@ export function calculateBestRoster(state,teamId=state.clubId){
  for(const [group,count,match] of GROUPS){
   const choices=pool.filter(p=>match(p)&&!used.has(p.id)&&(!p.foreign||selectedForeign<Number(state.foreignLimit||0))).sort((a,b)=>(Number(!!a.foreign)-Number(!!b.foreign))||(estimatePlayerAbility(b)-estimatePlayerAbility(a)));
   const chosen=choices.slice(0,count);chosen.forEach(p=>{used.add(p.id);if(p.foreign)selectedForeign++;selected.push({...p,optimizerGroup:group});});
-  if(chosen.length<count)shortages.push(group+" 尚缺 "+(count-chosen.length)+" 人");
+  for(let i=chosen.length;i<count;i++){const id="best-roster-"+teamId+"-"+(state.season||2026)+"-"+group+"-"+i;const generated=generateFictionalPlayer({id,clubId:null,position:group==="OF"?"CF":group,seed:id,country:"TW",rosterLevel:"market"});generated.name=generated.name+"（補強）";generated.source="自動最佳陣容補位生成 · 虛構球員";generated.dataKind="fictional";generated.foreign=false;generated.rosterLevel="market";pool.push(generated);used.add(generated.id);selected.push({...generated,optimizerGroup:group,generatedForBestRoster:true});}
  }
  return {selected,shortages,required:28,filled:selected.length,groups:Object.fromEntries(GROUPS.map(([g,n])=>[g,selected.filter(p=>p.optimizerGroup===g).length]))};
 }
@@ -16,8 +17,10 @@ export function applyBestRoster(state,teamId=state.clubId){
  if(state.currentGame?.status==="live")throw new Error("比賽進行中不能調整球員名單");
  const selectedIds=new Set(plan.selected.map(p=>p.id));
  const selectedFree=plan.selected.filter(p=>state.freeAgents?.some(x=>x.id===p.id));
+ const generatedPlayers=plan.selected.filter(p=>p.generatedForBestRoster);
  state.players=(state.players||[]).filter(p=>p.clubId!==teamId||selectedIds.has(p.id)).map(p=>p.clubId===teamId?{...p,rosterLevel:"first"}:p);
  for(const p of selectedFree){state.players.push({...p,clubId:teamId,rosterLevel:"first",contractStatus:"signed"});state.freeAgents=state.freeAgents.filter(x=>x.id!==p.id);state.contracts??={};state.contracts[p.id]={salary:Math.round((p.marketDemand||2500000)*.08),yearsRemaining:2,expirySeason:state.season+1,status:"active",signedSeason:state.season,signingBonus:0};}
+ for(const p of generatedPlayers){state.players.push({...p,clubId:teamId,rosterLevel:"first"});state.contracts??={};state.contracts[p.id]={salary:estimatePlayerSalary(p),yearsRemaining:1,expirySeason:state.season,status:"active",signedSeason:state.season,signingBonus:0};}
  state.minorLeague??=[];
  state.minorLeague=state.minorLeague.filter(p=>p.clubId!==teamId||!selectedIds.has(p.id));
  for(const p of plan.selected){const active=state.players.find(x=>x.id===p.id);if(active)active.rosterLevel="first";}
