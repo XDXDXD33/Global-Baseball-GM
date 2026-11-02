@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createInitialLeagueRoster,buildDefaultLineup,createFreeAgentPool} from "../src/game-engine.js";
 import {LEAGUE} from "../src/data.js";
-import {initializeContracts,offerExtension,signFreeAgent,signForeignFreeAgent,releasePlayer,advanceContractYear,contractDemand,calculateAnnualPayroll,calculateAvailableBudget} from "../src/contract-engine.js";
+import {initializeContracts,offerExtension,signFreeAgent,signForeignFreeAgent,releasePlayer,advanceContractYear,contractDemand,calculateAnnualPayroll,calculateAvailableBudget,repairSignedPlayerLineups} from "../src/contract-engine.js";
 function state(){
  const players=createInitialLeagueRoster(2026);
  return {season:2026,clubId:"brothers",foreignLimit:4,budget:200000000,players,freeAgents:createFreeAgentPool(2026),lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),contracts:initializeContracts(players,2026),contractHistory:[]};
@@ -119,4 +119,17 @@ test("retired historical foreign players cannot be signed again",()=>{
  const candidate={id:"retired-market-entry",name:retired.name,sourcePlayerId:retired.sourcePlayerId,clubId:null,position:retired.position,age:retired.age,foreign:true,marketDemand:1000000,ratings:retired.ratings};
  s.foreignMarket=[candidate];
  assert.throws(()=>signForeignFreeAgent(s,{playerId:candidate.id,years:1,salary:1000000}),/已經退休/);
+});
+
+test("existing saved overseas stars are inserted into a stronger starting lineup once migrated",()=>{
+ const s=state();s.signedLineupMigrationVersion=0;
+ const displacedId=s.lineups[s.clubId].lineup[8];
+ const displaced=s.players.find(x=>x.id===displacedId);
+ displaced.ratings={contact:20,power:20,eye:20,avoidK:20,speed:20,stealing:20,fielding:20,arm:20,range:20};
+ const star={id:"saved-ohtani",name:"Saved Star",clubId:s.clubId,position:"DH",age:32,foreign:true,marketType:"overseas",contractStatus:"signed",estimatedCPBLAbility:99,ratings:{contact:96,power:99,eye:94,avoidK:93,fielding:70,arm:70,range:70}};
+ s.players.push(star);
+ repairSignedPlayerLineups(s);
+ assert.ok(s.lineups[s.clubId].lineup.includes(star.id));
+ assert.ok(s.players.some(x=>x.id===displacedId&&x.clubId===s.clubId));
+ assert.equal(s.players.filter(x=>x.id===star.id).length,1);
 });
