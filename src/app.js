@@ -20,13 +20,16 @@ async function readHistoryDB(){try{const db=await historyDb();const value=await 
 let state = null;
 let page = "dashboard";
 let starSeason = 2026;
+let saveStatus = "";
 
 function club(id){ return LEAGUE.clubs.find(c=>c.id===id); }
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function load(){
  try{
   const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return false;
-  state=JSON.parse(raw);state.history=emptyHistory();
+  const parsed=JSON.parse(raw);
+  if(!parsed||!Array.isArray(parsed.players)||!parsed.clubId||!club(parsed.clubId))throw new Error("存檔格式不完整或球隊資料無效");
+  state=parsed;state.history=emptyHistory();
   if(!state.schedule||!state.lineups){
    const custom=(state.players||[]).filter(p=>!String(p.id).startsWith("demo-"));
    state.players=[...createInitialLeagueRoster(state.season||2026),...custom];
@@ -36,20 +39,35 @@ function load(){
    state.ticketPrice=350;state.trainingLevel=1;state.scoutingLevel=1;
   }
   state.freeAgents??=createFreeAgentPool(state.season);if(!state.contracts||!Object.keys(state.contracts).length)state.contracts=initializeContracts(state.players,state.season);for(const p of state.players){const c=state.contracts[p.id];if(c&&c.yearsRemaining==null){c.yearsRemaining=Number(c.years)||1;c.expirySeason=state.season+c.yearsRemaining-1;c.status="active";}}state.injuries??={};state.retiredPlayers??=[];state.minorLeague??=[];if(state.currentGame){state.currentGame.injuries??=[];state.currentGame.automaticRunnerIds??=[];state.currentGame.fieldingStats??={};state.currentGame.unavailable??={};state.currentGame.substitutedOut??=[];state.currentGame.commands??={};}state.phase??="regular";state.tradeHistory??=[];state.pitcherWorkload??={};state.trainingFocus??="balanced";state.tactics??={};state.contracts??={};state.seasonStats??={batters:{},pitchers:{}};state.gameArchive??=[];state.ticketPrice??=350;state.trainingLevel??=1;state.scoutingLevel??=1;state.matchday??=1;state.aiClubReports??=[];state.aiTradeProposals??=[];initializeStaff(state);if(!state.aiClubFinances){initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});}
-  return true;
- }catch(e){console.warn("Save data could not be read",e);return false;}
+  saveStatus="存檔讀取成功";return true;
+ }catch(e){console.warn("Save data could not be read",e);state=null;saveStatus="存檔無法讀取："+e.message;return false;}
 }
 function persist(){if(!state)return Promise.resolve();const save={...state};delete save.history;localStorage.setItem(STORAGE_KEY,JSON.stringify(save));const saved=state.history?saveHistoryDB(state.history):Promise.resolve();$("#save-indicator").textContent="已儲存 · "+new Date().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});return saved;}
+function showGame(){
+ $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;
+ $("#save-indicator").textContent="已載入本機存檔";render();
+ readHistoryDB().then(data=>{if(state){state.history=data;render();}});
+}
+function refreshWelcome(){
+ const raw=localStorage.getItem(STORAGE_KEY),info=$("#save-info"),continueBtn=$("#continue-btn");
+ let parsed=null,valid=false;
+ if(raw){try{parsed=JSON.parse(raw);valid=!!parsed&&Array.isArray(parsed.players)&&!!club(parsed.clubId);}catch{valid=false;}}
+ continueBtn.hidden=!valid;
+ if(valid)info.textContent=`找到存檔：${parsed.manager||"未命名球團"} · ${club(parsed.clubId).name} · ${parsed.season||"未知"} 球季`;
+ else if(raw)info.textContent="偵測到無法辨識的存檔。原始資料仍保留，可匯入備份或建立新球團。";
+ else info.textContent="目前沒有本機存檔。你可以建立新球團，或匯入先前匯出的 JSON 存檔。";
+}
 function setup(){
   $("#team-select").innerHTML=LEAGUE.clubs.map(c=>`<option value="${c.id}">${c.name} · ${c.city}</option>`).join("");
   $("#career-dialog").showModal();
 }
 function startCareer(e){
   e.preventDefault();
+  const existing=localStorage.getItem(STORAGE_KEY);if(existing){localStorage.setItem(STORAGE_KEY+"-backup-"+Date.now(),existing);}
   const team=club($("#team-select").value);
   const players=createInitialLeagueRoster(2026);
   state={version:2,leagueId:"cpbl",season:2026,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague:[],draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit:validateForeignLimit($("#foreign-limit").value),wins:0,losses:0,budget:120000000,fanbase:8500,players,history:emptyHistory(),lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(2026),currentGame:null,freeAgents:createFreeAgentPool(2026),tactics:{},contracts:initializeContracts(players,2026),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString()};initializeAIClubFinances(state);runAIClubManagement(state,{phase:"preseason"});
-  $("#career-dialog").close();$("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;persist();render();
+  $("#career-dialog").close();showGame();persist();
 }
 function stat(label,value,note=""){return `<div class="stat-card"><small>${label}</small><strong>${value}</strong>${note?`<em>${note}</em>`:""}</div>`;}
 function dashboard(){
@@ -95,12 +113,14 @@ function exportSave(){
  a.href=url;a.download="global-baseball-gm-save.json";a.click();URL.revokeObjectURL(url);
 }
 $("#new-career-btn").addEventListener("click",setup);
+$("#continue-btn").addEventListener("click",()=>{if(load())showGame();else{refreshWelcome();alert("讀取失敗："+(saveStatus||"存檔資料有誤"));}});
+$("#import-save-btn").addEventListener("click",()=>$("#import-save-file").click());
+$("#import-save-file").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{const imported=JSON.parse(await file.text());if(!imported||!Array.isArray(imported.players)||!imported.clubId||!club(imported.clubId))throw new Error("檔案不是有效的 Global Baseball GM 存檔");if(localStorage.getItem(STORAGE_KEY))localStorage.setItem(STORAGE_KEY+"-backup-"+Date.now(),localStorage.getItem(STORAGE_KEY));localStorage.setItem(STORAGE_KEY,JSON.stringify(imported));if(load())showGame();else throw new Error(saveStatus||"讀檔失敗");}catch(error){alert("匯入失敗："+error.message);}finally{e.target.value="";refreshWelcome();}});
 $("#cancel-career").addEventListener("click",()=>$("#career-dialog").close());
 $("#career-form").addEventListener("submit",startCareer);
 $("#foreign-limit").addEventListener("input",e=>$("#foreign-value").textContent=e.target.value+" 人");
 $("#save-btn").addEventListener("click",persist);
 document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>{if(!state)return;page=b.dataset.page;render();}));
-if(load()){
- $("#welcome").hidden=true;$("#game").hidden=false;$("#save-btn").disabled=false;$("#save-indicator").textContent="已載入本機存檔";render();
- readHistoryDB().then(data=>{if(state){state.history=data;render();}});
-}
+refreshWelcome();
+window.addEventListener("error",event=>{const info=$("#save-info");if(info)info.textContent="遊戲初始化發生錯誤："+(event.message||"未知錯誤")+"。請重新整理頁面或匯入存檔。";});
+window.addEventListener("unhandledrejection",event=>{const info=$("#save-info");if(info)info.textContent="遊戲載入失敗："+String(event.reason?.message||event.reason||"未知錯誤");});
