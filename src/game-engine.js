@@ -30,7 +30,7 @@ export function buildDefaultLineup(players,clubId){
 export function createFreeAgentPool(seed=2026){
  const positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","RP","RP","RP","RP","RP","RP"];
  const countries=["US","DOM","VEN","PR","CUB","JPN","KOR","MEX","PAN","COL"];
- return positions.map((pos,i)=>{const p=generateFictionalPlayer({id:"fa-"+seed+"-"+String(i+1).padStart(2,"0"),clubId:null,position:pos,seed:"free-agent-"+seed+"-"+i,country:countries[i%countries.length],rosterLevel:"market"});p.contractStatus="free-agent";return p;});
+ return positions.map((pos,i)=>{const country=i%4===0?countries[Math.floor(i/4)%countries.length]:"TW";const p=generateFictionalPlayer({id:"fa-"+seed+"-"+String(i+1).padStart(2,"0"),clubId:null,position:pos,seed:"free-agent-"+seed+"-"+i,country,rosterLevel:"market"});p.contractStatus="free-agent";return p;});
 }
 export function createLeagueSchedule(season=2026,teamIds=LEAGUE.clubs.map(c=>c.id)){
  if(teamIds.length!==6)throw new RangeError("目前 CPBL 排程需要六支球隊");
