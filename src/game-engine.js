@@ -208,6 +208,8 @@ function resolveInPlay(game,batter,pitcher,teamId){
 }
 function completePA(game,batter,teamId,kind){
  const bs=statsFor(game.batterStats,batter.id);bs.PA++;
+ const fieldingTeam=teamOnField(game),activePitcher=game.pitcherId[fieldingTeam];
+ game.pitcherBattersFaced??={};game.pitcherBattersFaced[activePitcher]=(game.pitcherBattersFaced[activePitcher]||0)+1;
  if(!["BB","HBP","SF","CI"].includes(kind)&&game.lastPAResult!=="SF")bs.AB++;
  game.lastPAResult=null;game.battingIndex[teamId]=(game.battingIndex[teamId]+1)%game.lineups[teamId].length;
  game.currentPA=null;
@@ -226,7 +228,13 @@ export function createGame({fixture,players,lineups,seed=1,tactics={},userTeamId
  return {id:fixture.id,fixture:{...fixture},status:"live",inning:1,half:"top",outs:0,bases:[null,null,null],score:{[fixture.homeId]:0,[fixture.awayId]:0},lineScore:{[fixture.homeId]:[0],[fixture.awayId]:[0]},battingIndex:{[fixture.homeId]:0,[fixture.awayId]:0},lineups:{[fixture.homeId]:lineupFor(fixture.homeId),[fixture.awayId]:lineupFor(fixture.awayId)},bullpens:{[fixture.homeId]:[...(lineups[fixture.homeId]?.bullpen||[])].filter(id=>!isInjured(id)),[fixture.awayId]:[...(lineups[fixture.awayId]?.bullpen||[])].filter(id=>!isInjured(id))},usedPitchers:{[fixture.homeId]:[home.id],[fixture.awayId]:[away.id]},userTeamId,workload:{...workload},injuries:[],unavailable:{...injuries},automaticRunnerIds:[],fieldingStats:{},commands:{},substitutedOut:[],autoManageUserTeam:false,pitcherId:{[fixture.homeId]:home.id,[fixture.awayId]:away.id},pitcherStats:{},batterStats:{},players:byId,currentPA:null,rngState:(seed>>>0)||1,pitchCount:0,log:[],lastEvent:"比賽開始",tactics:{...tactics},result:null};
 }
 function autoManagePitcher(game,teamId){
- if(game.userTeamId===teamId&&!game.autoManageUserTeam)return;const current=game.players[game.pitcherId[teamId]],ps=statsFor(game.pitcherStats,current.id),hook=game.tactics[teamId]?.bullpenHook||"normal",factor=hook==="quick" ? .95 : hook==="long"?1.7:1.35,limit=Math.max(55,rating(current,"stamina",50)*factor);if(ps.pitches+(game.workload?.[current.id]||0)<limit)return;const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
+ if(game.userTeamId===teamId&&!game.autoManageUserTeam)return;
+ const current=game.players[game.pitcherId[teamId]],ps=statsFor(game.pitcherStats,current.id),hook=game.tactics[teamId]?.bullpenHook||"normal",factor=hook==="quick"?.95:hook==="long"?1.7:1.35,limit=Math.max(55,rating(current,"stamina",50)*factor);
+ const injured=game.injuries.some(x=>x.playerId===current.id);
+ if(!injured&&(game.pitcherBattersFaced?.[current.id]||0)<3)return;
+ if(ps.pitches+(game.workload?.[current.id]||0)<limit&&!injured)return;
+ const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));
+ if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);game.pitcherBattersFaced??={};game.pitcherBattersFaced[next]=0;log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
 }
 function trySteal(game,teamId,force=false){
  const runnerId=game.bases[0];if(!runnerId||game.bases[1]||game.outs>=2)return;const tactic=game.tactics[teamId]?.stealAggression||"normal";if(!force&&tactic==="conservative")return;const runner=game.players[runnerId],catcher=game.players[game.lineups[teamOnField(game)].find(id=>game.players[id]?.position==="C")],speed=rating(runner,"speed"),arm=rating(catcher,"arm");const attempt=tactic==="aggressive" ? .045 : .014;if(!force&&random(game)>attempt*(.7+speed/100))return;if(random(game)<clamp(.70+(speed-arm)*.004+(rating(runner,"stealing")-50)*.002,.42,.92)){game.bases[1]=runnerId;game.bases[0]=null;statsFor(game.batterStats,runnerId).SB++;log(game,runner.name+" 盜上二壘");}else{game.bases[0]=null;game.automaticRunnerIds=(game.automaticRunnerIds||[]).filter(id=>id!==runnerId);statsFor(game.batterStats,runnerId).CS++;game.outs++;statsFor(game.pitcherStats,game.pitcherId[teamOnField(game)]).outs++;log(game,runner.name+" 盜壘失敗遭觸殺");if(game.outs>=3){nextHalf(game);game.currentPA=null;}}
@@ -319,11 +327,13 @@ export function issueIntentionalWalk(game,teamId){
 }
 export function changePitcher(game,teamId,pitcherId){
  if(game.status!=="live"||teamOnField(game)!==teamId)throw new Error("只能在本隊守備時更換投手");
+ const currentId=game.pitcherId[teamId],injured=game.injuries.some(x=>x.playerId===currentId);
+ if(!injured&&(game.pitcherBattersFaced?.[currentId]||0)<3)throw new Error("目前投手尚未面對滿三名打者，除非投手受傷，否則不能提前換投。");
  if(game.userTeamId&&game.userTeamId!==teamId)throw new Error("只能指揮自己的球隊");
  const p=game.players[pitcherId];if(!p||p.clubId!==teamId||!["SP","RP","P"].includes(p.position))throw new Error("只能更換為本隊可用投手");if(Number(game.unavailable?.[pitcherId]?.daysRemaining||0)>0)throw new Error("該投手仍在傷兵名單中");
  if(game.pitcherId[teamId]===pitcherId)throw new Error("該投手已在場上");
  if(game.usedPitchers[teamId]?.includes(pitcherId))throw new Error("該投手已經在本場比賽投過球");
- game.pitcherId[teamId]=pitcherId;game.usedPitchers[teamId].push(pitcherId);log(game,"投手更換："+p.name);return game;
+ game.pitcherId[teamId]=pitcherId;game.usedPitchers[teamId].push(pitcherId);game.pitcherBattersFaced??={};game.pitcherBattersFaced[pitcherId]=0;log(game,"投手更換："+p.name);return game;
 }
 export function substituteBatter(game,teamId,outPlayerId,newPlayerId){
  if(game.status!=="live"||game.currentPA||teamAtBat(game)!==teamId)throw new Error("請在本隊進攻且打席結束後進行代打");
