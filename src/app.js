@@ -105,7 +105,7 @@ async function startCareer(e){
     const hasSeasonData=historical.realCount>0;
     const players=hasSeasonData?historical.players:createInitialLeagueRoster(year);
     const minorLeague=hasSeasonData?historical.minorLeague:[];
-    const foreignMarket=buildHistoricalForeignMarket(history,year,players,year);
+    const foreignMarket=buildHistoricalForeignMarket(history,year,players,year,team.id);
     state={version:3,leagueId:"cpbl",season:year,month:1,matchday:1,pitcherWorkload:{},tradeHistory:[],minorLeague,draft:null,trainingFocus:"balanced",manager:$("#manager-name").value.trim(),clubId:team.id,foreignLimit,wins:0,losses:0,budget:120000000,fanbase:8500,players,history,lineups:Object.fromEntries(LEAGUE.clubs.map(c=>[c.id,buildDefaultLineup(players,c.id)])),schedule:createLeagueSchedule(year),currentGame:null,freeAgents:createFreeAgentPool(year),foreignMarket,tactics:{},contracts:initializeContracts(players,year),injuries:{},phase:"regular",seasonStats:{batters:{},pitchers:{}},gameArchive:[],ticketPrice:350,trainingLevel:1,scoutingLevel:1,createdAt:new Date().toISOString(),dataImport:{source:"CPBL Opendata",season:year,completeFiles:importResult?.completed||0,totalFiles:importResult?.total||107,errors:importResult?.errors||[]}};
     initializeAIClubFinances(state);initializeStaff(state);runAIClubManagement(state,{phase:"preseason"});
     $("#career-dialog").close();persist();showGame();
