@@ -123,6 +123,7 @@ export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
   if(oldCfg)for(const key of ["lineup","rotation","bullpen"])oldCfg[key]=(oldCfg[key]||[]).filter(id=>id!==existing.id);
   delete state.contracts?.[existing.id];
   state.players=state.players.filter(x=>x.id!==existing.id);
+  if(oldClub!==state.clubId)state.lineups[oldClub]=buildDefaultLineup(state.players,oldClub);
  }
  const signed={...p,id:"signed-"+p.id+"-"+state.season,clubId:state.clubId,rosterLevel:"first",contractStatus:"signed",source:p.source||"國際洋將招募市場"};
  state.players.push(signed);state.contracts??={};
