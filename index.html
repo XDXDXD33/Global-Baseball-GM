@@ -50,6 +50,9 @@
     <form id="career-form">
       <div class="eyebrow">NEW FRANCHISE</div><h2>建立你的球團</h2>
       <label>球團名稱<input id="manager-name" maxlength="24" placeholder="例如：新世代棒球經理" required></label>
+      <label>開局球季年份<select id="season-select"></select></label>
+      <p class="field-help">歷史資料來源目前可驗證至 2024 年。開局會自動匯入 1990–2024 年資料庫，再依所選年份建立球員名單，首次載入可能需要一些時間。</p>
+      <p id="career-status" class="field-help" aria-live="polite"></p>
       <label>選擇經營球隊<select id="team-select"></select></label>
       <label>洋將名額上限 <strong id="foreign-value">4 人</strong><input id="foreign-limit" type="range" min="0" max="13" value="4"></label>
       <p class="field-help">可設定 0 至 13 人。這是遊戲內自訂規則，不代表任何特定現實球季的官方登錄規定。</p>
