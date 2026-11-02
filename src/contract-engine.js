@@ -168,6 +168,8 @@ export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
  const historical=state.foreignMarket?.find(x=>x.id===playerId);
  const candidate=overseas||historical;
  if(!candidate||!candidate.foreign)throw new Error("這名外籍球員目前不在招募市場");
+ const sameIdentity=state.players.find(x=>x.sourcePlayerId&&candidate.sourcePlayerId&&x.sourcePlayerId===candidate.sourcePlayerId);
+ if(sameIdentity?.retired)throw new Error("這名球員已經退休，不能再進行招募。");
  const existingActive=state.players.find(x=>x.clubId&&x.sourcePlayerId&&candidate.sourcePlayerId&&x.sourcePlayerId===candidate.sourcePlayerId);
  if(existingActive||state.players.some(x=>x.clubId&&x.id===candidate.id))throw new Error("這名球員目前仍隸屬其他球團，不能從招募市場直接挖走");
  const freeRecord=candidate.sourcePlayerId?(state.freeAgents||[]).find(x=>x.sourcePlayerId===candidate.sourcePlayerId):null;
