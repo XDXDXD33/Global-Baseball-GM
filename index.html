@@ -31,8 +31,14 @@
         <div class="eyebrow">YOUR CLUB. YOUR LEGACY.</div>
         <h1>打造屬於你的<br><em>棒球王朝。</em></h1>
         <p>從中華職棒六隊出發，掌握球員、預算與未來。每一個決定，都將寫進球團歷史。</p>
-        <button id="new-career-btn" class="button button-primary">建立新球團 <span>→</span></button>
-        <div class="welcome-note">第一版資料以示範球員呈現，並清楚標示虛擬資料。</div>
+        <div class="start-options">
+          <button id="continue-btn" class="button button-primary" hidden>繼續上次進度 →</button>
+          <button id="new-career-btn" class="button button-primary">建立新球團 <span>→</span></button>
+          <button id="import-save-btn" class="button button-quiet">讀取 JSON 存檔</button>
+          <input id="import-save-file" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p id="save-info" class="save-info" aria-live="polite">正在檢查本機存檔…</p>
+        <div class="welcome-note">存檔保存在目前瀏覽器。換裝置或清除瀏覽資料前，請先匯出 JSON 備份。</div>
       </div>
       <div id="game" hidden>
         <div class="page-heading"><div><div class="eyebrow" id="season-label">2026 球季</div><h1 id="page-title">球團總覽</h1></div><div class="season-pill">CPBL <span>●</span> 經營模式</div></div>
