@@ -200,3 +200,23 @@ test("an injured pitcher may be replaced before facing three batters",()=>{
  g.injuries.push({playerId:old,clubId:"brothers",daysOut:4});g.currentPA={pitcherId:old,balls:1,strikes:0};
  changePitcher(g,"brothers",next);assert.equal(g.pitcherId.brothers,next);
 });
+
+test("elite contact and power produce more hits and home runs than league-average ratings",()=>{
+ const tunedPlayers=players.map(p=>({...p,ratings:{...(p.ratings||{})}}));
+ const strongId=lineups.brothers.lineup[0],averageId=lineups.lions.lineup[0];
+ tunedPlayers.find(p=>p.id===strongId).ratings={contact:95,power:99,eye:92,avoidK:92,speed:75,stealing:75,fielding:70,arm:70,range:70};
+ tunedPlayers.find(p=>p.id===averageId).ratings={contact:50,power:50,eye:50,avoidK:50,speed:50,stealing:50,fielding:50,arm:50,range:50};
+ const totals={[strongId]:{PA:0,H:0,HR:0},[averageId]:{PA:0,H:0,HR:0}};
+ for(let i=1;i<=30;i++){
+  const fixture={id:"power-balance-"+i,season:2026,matchday:i,homeId:"brothers",awayId:"lions"};
+  const game=simulateGame(createGame({fixture,players:tunedPlayers,lineups,seed:i*7919}));
+  for(const id of [strongId,averageId]){
+   const stats=game.batterStats[id]||{};
+   for(const key of ["PA","H","HR"])totals[id][key]+=Number(stats[key]||0);
+  }
+ }
+ const elite=totals[strongId],average=totals[averageId];
+ assert.ok(elite.PA>0&&average.PA>0);
+ assert.ok(elite.HR>average.HR,"elite power should produce more home runs: "+JSON.stringify({elite,average}));
+ assert.ok(elite.H/elite.PA>average.H/average.PA,"elite contact should produce a higher batting average: "+JSON.stringify({elite,average}));
+});
