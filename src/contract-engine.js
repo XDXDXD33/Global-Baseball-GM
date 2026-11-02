@@ -104,3 +104,34 @@ export function advanceContractYear(state){
  state.contractHistory.push(...expired.map(p=>({type:"expiry",playerId:p.id,playerName:p.name,teamId:p.clubId,season:state.season})));
  return expired;
 }
+
+export function signForeignFreeAgent(state,{playerId,years=1,salary=null}){
+ const p=state.foreignMarket?.find(x=>x.id===playerId);
+ if(!p||!p.foreign)throw new Error("這名外籍球員目前不在招募市場");
+ const roster=state.players.filter(x=>x.clubId===state.clubId&&x.rosterLevel!=="minor");
+ if(roster.length>=30)throw new Error("一軍名單已達 30 人上限，請先釋出或下放球員");
+ if(countForeignPlayers(roster)>=state.foreignLimit)throw new Error("一軍洋將名額已滿。請先下放或釋出現有洋將。");
+ const term=Number(years),annual=Number(salary??contractDemand(p)),demand=contractDemand(p);
+ if(!Number.isInteger(term)||term<1||term>5)throw new Error("合約年限須為 1 至 5 年");
+ if(!Number.isFinite(annual)||annual<100000)throw new Error("年薪至少為 100,000 元");
+ if(annual<demand*.9)throw new Error("球員拒絕報價，期望年薪約為 $"+demand.toLocaleString());
+ const bonus=Math.round(annual*.2);
+ if(state.budget<bonus)throw new Error("資金不足，無法支付簽約金");
+ const existing=state.players.find(x=>x.sourcePlayerId&&x.sourcePlayerId===p.sourcePlayerId);
+ if(existing?.clubId){
+  const oldClub=existing.clubId,oldCfg=state.lineups?.[oldClub];
+  if(oldCfg)for(const key of ["lineup","rotation","bullpen"])oldCfg[key]=(oldCfg[key]||[]).filter(id=>id!==existing.id);
+  delete state.contracts?.[existing.id];
+  state.players=state.players.filter(x=>x.id!==existing.id);
+ }
+ const signed={...p,id:"signed-"+p.id+"-"+state.season,clubId:state.clubId,rosterLevel:"first",contractStatus:"signed",source:p.source||"國際洋將招募市場"};
+ state.players.push(signed);state.contracts??={};
+ state.contracts[signed.id]={salary:Math.round(annual),yearsRemaining:term,expirySeason:state.season+term-1,status:"active",signedSeason:state.season,signingBonus:bonus};
+ state.budget-=bonus;state.foreignMarket=state.foreignMarket.filter(x=>x.id!==playerId);
+ const cfg=state.lineups[state.clubId]||(state.lineups[state.clubId]={lineup:[],rotation:[],bullpen:[]});
+ if(["RP","P"].includes(signed.position))cfg.bullpen.push(signed.id);
+ if(signed.position==="SP"&&cfg.rotation.length<5)cfg.rotation.push(signed.id);
+ if(cfg.lineup.length<9&&!["SP","RP","P"].includes(signed.position))cfg.lineup.push(signed.id);
+ state.contractHistory??=[];state.contractHistory.push({type:"foreign-sign",playerId:signed.id,playerName:signed.name,season:state.season,salary:Math.round(annual),years:term,bonus});
+ return {player:signed,bonus,demand};
+}
