@@ -218,5 +218,6 @@ test("elite contact and power produce more hits and home runs than league-averag
  const elite=totals[strongId],average=totals[averageId];
  assert.ok(elite.PA>0&&average.PA>0);
  assert.ok(elite.HR>average.HR,"elite power should produce more home runs: "+JSON.stringify({elite,average}));
+ assert.ok(elite.HR/elite.PA>.06,"elite 99-power production should approach 40+ HR per 600 PA: "+JSON.stringify({elite,average}));
  assert.ok(elite.H/elite.PA>average.H/average.PA,"elite contact should produce a higher batting average: "+JSON.stringify({elite,average}));
 });
