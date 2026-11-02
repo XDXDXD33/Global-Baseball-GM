@@ -31,17 +31,19 @@ export function calculateBestRoster(state,teamId=state.clubId){
  const foreignLimit=Math.max(0,Number(state.foreignLimit)||0);
  const eligible=p=>!p.foreign||selectedForeign<foreignLimit;
  const take=(group,count,predicate,fallback=()=>false)=>{
-  let choices=pool.filter(p=>!used.has(p.id)&&eligible(p)&&predicate(p)).sort(comparePlayers);
-  let chosen=choices.slice(0,count);
-  if(chosen.length<count){
-   const remaining=pool.filter(p=>!used.has(p.id)&&eligible(p)&&fallback(p)).sort(comparePlayers);
-   chosen=[...chosen,...remaining.slice(0,count-chosen.length)];
-  }
-  chosen.forEach(p=>{
-   used.add(p.id);
-   if(p.foreign)selectedForeign++;
-   selected.push({...p,optimizerGroup:group});
-  });
+  const chosen=[];
+  const addFrom=matches=>{
+   for(const p of matches.sort(comparePlayers)){
+    if(chosen.length>=count)break;
+    if(used.has(p.id)||(p.foreign&&selectedForeign>=foreignLimit))continue;
+    used.add(p.id);
+    if(p.foreign)selectedForeign++;
+    chosen.push(p);
+    selected.push({...p,optimizerGroup:group});
+   }
+  };
+  addFrom(pool.filter(p=>predicate(p)));
+  if(chosen.length<count)addFrom(pool.filter(p=>fallback(p)));
   if(chosen.length<count)shortages.push(group+" 缺少 "+(count-chosen.length)+" 人");
  };
  for(const [group,count,match] of GROUPS){
@@ -61,7 +63,7 @@ export function applyBestRoster(state,teamId=state.clubId){
  const plan=calculateBestRoster(state,teamId);
  const teamPlayers=uniqueTeamPlayers(state,teamId);
  const selectedIds=new Set(plan.selected.map(p=>p.id));
- const selected=teamPlayers.filter(p=>selectedIds.has(p.id)).map(p=>({...p,rosterLevel:"first"}));
+ const selected=plan.selected.map(({optimizerGroup,...p})=>({...p,rosterLevel:"first"}));
  const reserves=teamPlayers.filter(p=>!selectedIds.has(p.id)).map(p=>({...p,rosterLevel:"minor",demotedByOptimizer:true}));
 
  // 只重新分配既有一、二軍球員。自由球員、合約及其他球隊資料完全不動。
@@ -86,8 +88,8 @@ export function applyBestRoster(state,teamId=state.clubId){
   if(!p)p=hitters.find(x=>!usedHitters.has(x.id));
   if(p){lineup.push(p.id);usedHitters.add(p.id);}
  }
- const rotation=selected.filter(p=>p.optimizerGroup==="SP").sort(comparePlayers).map(p=>p.id);
- const bullpen=selected.filter(p=>p.optimizerGroup==="RP").sort(comparePlayers).map(p=>p.id);
+ const rotation=plan.selected.filter(p=>p.optimizerGroup==="SP").sort(comparePlayers).map(p=>p.id);
+ const bullpen=plan.selected.filter(p=>p.optimizerGroup==="RP").sort(comparePlayers).map(p=>p.id);
  state.lineups??={};
  state.lineups[teamId]={...(state.lineups[teamId]||{}),lineup,rotation,bullpen};
  return plan;
