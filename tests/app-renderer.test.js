@@ -10,7 +10,7 @@ test("every page registered by the app has a renderer declaration", async () => 
     const parts = entry.trim().split(":");
     return (parts[1] || parts[0]).trim();
   }).filter(Boolean);
-  assert.equal(names.length, 13, "all navigation pages should be registered");
+  assert.equal(names.length, 14, "all navigation pages should be registered");
   for (const name of names) {
     assert.match(source, new RegExp(`(?:function|const|let|var)\\s+${name}\\b`), `Missing page renderer: ${name}`);
   }
