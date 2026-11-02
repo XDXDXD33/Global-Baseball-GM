@@ -57,6 +57,7 @@ export function signFreeAgent(state,{playerId,years=2,salary=null}){
  const demand=contractDemand(p);
  if(annual<demand*.9)throw new Error("球員拒絕合約，期望年薪約為 $"+demand.toLocaleString());
  const bonus=Math.round(annual*.2);
+ if(p.marketType==="overseas"&&state.budget<annual*.5)throw new Error("球團財力尚不足以承擔這位海外球星的長期薪資風險，建議累積更多資金與球迷基數後再接洽。");
  if(state.budget<bonus)throw new Error("資金不足，無法支付簽約金");
  const signed={...p,clubId:state.clubId,source:p.source||"遊戲自由球員市場",contractStatus:"signed"};
  state.players.push(signed);state.contracts??={};
