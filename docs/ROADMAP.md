@@ -53,7 +53,9 @@
 - [x] Trade deadline enforcement
 - [x] AI-initiated balanced trade proposals with user accept/decline and deadline expiry
 - [x] AI free-agent signings, roster construction and contract renewal
-- [ ] Coaches, medical staff and advanced scouting reports
+- [x] Hitting, pitching and fielding coaches with monthly development effects
+- [x] Medical staff that improves injury recovery
+- [x] Scouting reports with ability ranges, confidence and staff/facility accuracy
 - [x] Three-round amateur draft with AI club picks and user-controlled selections
 - [x] Separate minor-league roster, monthly prospect development and potential ceilings
 - [x] Prospect promotion to the first team and eligible player demotion
