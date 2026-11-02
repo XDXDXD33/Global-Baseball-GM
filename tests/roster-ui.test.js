@@ -12,7 +12,8 @@ test("roster page renders the selected club and player rows", () => {
     ]
   };
   const html = renderRosterPage(state, id => ({ name: id === "brothers" ? "中信兄弟" : "統一獅" }), value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
-  assert.match(html, /中信兄弟 球員名單/);
+  assert.match(html, /球員名單 · 1 人/);
+  assert.match(html, /球隊：中信兄弟/);
   assert.match(html, /測試投手/);
   assert.doesNotMatch(html, /測試洋將/);
   assert.match(html, /CSV 球員資料匯入/);
@@ -21,5 +22,5 @@ test("roster page renders the selected club and player rows", () => {
 
 test("roster page safely handles an empty roster", () => {
   const html = renderRosterPage({ clubId: "brothers", foreignLimit: 4, players: [] }, () => ({ name: "中信兄弟" }), String);
-  assert.match(html, /目前沒有球員資料/);
+  assert.match(html, /目前沒有球員/);
 });
