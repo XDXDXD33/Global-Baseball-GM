@@ -40,3 +40,5 @@
 .trade-team-code{width:42px;height:42px;display:grid;place-items:center;background:#203446;border:1px solid #40566a;border-radius:7px;color:var(--lime);font:700 12px "DM Mono";flex:none}
 @media(max-width:850px){.quick-sim-controls{grid-template-columns:1fr 1fr}.trade-team-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.quick-sim-controls{grid-template-columns:1fr}}
+
+.mail-item{padding:16px 2px;border-bottom:1px solid var(--line)}.mail-item:last-child{border:0}.mail-item h4{font-size:13px;margin:9px 0 5px}.mail-item p{font-size:12px;line-height:1.8;color:#c3d0dc;margin:0 0 10px}.mail-meta{display:flex;align-items:center;gap:12px}.mail-meta small{color:var(--muted);font:10px "DM Mono"}
