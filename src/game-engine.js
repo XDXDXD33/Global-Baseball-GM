@@ -1,6 +1,6 @@
 import { LEAGUE } from "./data.js";
 import { generateFictionalPlayer } from "./fictional-player-generator.js";
-import { conditionMultiplier, ensurePlayerCondition } from "./player-condition.js";
+import { conditionMultiplier, ensurePlayerCondition, ensurePitcherStamina } from "./player-condition.js";
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const rating=(p,key,fallback=50)=>(Number.isFinite(Number(p?.ratings?.[key]))?Number(p.ratings[key]):fallback)*conditionMultiplier(p);
@@ -82,7 +82,7 @@ function currentBatter(game){const id=teamAtBat(game),lineup=game.lineups[id];re
 function pitcherFor(game){return game.players[game.pitcherId[teamOnField(game)]];}
 function effectivePitchRating(game,pitcher,key){
  const ps=statsFor(game.pitcherStats,pitcher.id),limit=rating(pitcher,"stamina",55)*1.25;
- const fatigue=Math.max(0,ps.pitches+(game.workload?.[pitcher.id]||0)-limit)*.22;
+ const fatigue=Math.max(0,ps.pitches+(game.workload?.[pitcher.id]||0)-limit)*.22+(100-ensurePitcherStamina(pitcher))*.18;
  return clamp(rating(pitcher,key)-fatigue,10,100);
 }
 function chargeEarnedRun(game,pitcherId,runnerId){const unearned=game.automaticRunnerIds?.includes(runnerId);if(!unearned)statsFor(game.pitcherStats,pitcherId).ER++;else game.automaticRunnerIds=game.automaticRunnerIds.filter(id=>id!==runnerId);}
@@ -240,7 +240,7 @@ function autoManagePitcher(game,teamId){
  const injured=game.injuries.some(x=>x.playerId===current.id);
  if(!injured&&(game.pitcherBattersFaced?.[current.id]||0)<3)return;
  if(ps.pitches+(game.workload?.[current.id]||0)<limit&&!injured)return;
- const next=(game.bullpens[teamId]||[]).filter(id=>!game.usedPitchers[teamId].includes(id)&&game.players[id]&&Number(game.unavailable?.[id]?.daysRemaining||0)<=0).sort((a,b)=>{const pa=game.players[a],pb=game.players[b];const score=p=>rating(p,"stamina",50)*.42+rating(p,"control",50)*.2+rating(p,"movement",50)*.2+ensurePlayerCondition(p)*.18;return score(pb)-score(pa);})[0];
+ const next=(game.bullpens[teamId]||[]).filter(id=>!game.usedPitchers[teamId].includes(id)&&game.players[id]&&Number(game.unavailable?.[id]?.daysRemaining||0)<=0).sort((a,b)=>{const pa=game.players[a],pb=game.players[b];const score=p=>ensurePitcherStamina(p)*.38+rating(p,"stamina",50)*.24+rating(p,"control",50)*.16+rating(p,"movement",50)*.12+ensurePlayerCondition(p)*.10;return score(pb)-score(pa);})[0];
  if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);game.pitcherBattersFaced??={};game.pitcherBattersFaced[next]=0;log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
 }
 function trySteal(game,teamId,force=false){
