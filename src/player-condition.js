@@ -2,14 +2,14 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 export function ensurePitcherStamina(player){
  if(!player)return 100;
  const value=Number(player.pitcherStamina);
- if(!Number.isFinite(value))player.pitcherStamina=100;
+ if(player.pitcherStamina==null||!Number.isFinite(value))player.pitcherStamina=100;
  else player.pitcherStamina=clamp(value,0,100);
  return player.pitcherStamina;
 }
 export function ensurePlayerCondition(player){
  if(!player)return 70;
  const value=Number(player.condition);
- if(!Number.isFinite(value))player.condition=72;
+ if(player.condition==null||!Number.isFinite(value))player.condition=72;
  else player.condition=clamp(value,0,100);
  return player.condition;
 }
