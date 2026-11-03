@@ -1,8 +1,9 @@
 import { LEAGUE } from "./data.js";
 import { generateFictionalPlayer } from "./fictional-player-generator.js";
+import { conditionMultiplier, ensurePlayerCondition } from "./player-condition.js";
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-const rating=(p,key,fallback=50)=>Number.isFinite(Number(p?.ratings?.[key]))?Number(p.ratings[key]):fallback;
+const rating=(p,key,fallback=50)=>(Number.isFinite(Number(p?.ratings?.[key]))?Number(p.ratings[key]):fallback)*conditionMultiplier(p);
 const hash=s=>{let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 function rng(seed){let x=seed>>>0;return ()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};}
 function makePlayer(id,clubId,position,index,random){
@@ -50,7 +51,7 @@ export function createLeagueSchedule(season=2026,teamIds=LEAGUE.clubs.map(c=>c.i
  }
  return schedule.sort((a,b)=>a.matchday-b.matchday||a.homeId.localeCompare(b.homeId));
 }
-const clonePlayer=p=>({...p,ratings:{...(p.ratings||{})}});
+const clonePlayer=p=>({...p,condition:ensurePlayerCondition({...p}),ratings:{...(p.ratings||{})}});
 function statsFor(bucket,id){
  if(!id)return {};
  const defaults={PA:0,AB:0,H:0,Singles:0,Doubles:0,Triples:0,HR:0,R:0,RBI:0,BB:0,K:0,HBP:0,SB:0,CS:0,SH:0,SF:0,GDP:0,CI:0,WP:0,PB:0,BK:0,pitches:0,outs:0,ER:0};
@@ -239,7 +240,7 @@ function autoManagePitcher(game,teamId){
  const injured=game.injuries.some(x=>x.playerId===current.id);
  if(!injured&&(game.pitcherBattersFaced?.[current.id]||0)<3)return;
  if(ps.pitches+(game.workload?.[current.id]||0)<limit&&!injured)return;
- const next=(game.bullpens[teamId]||[]).find(id=>!game.usedPitchers[teamId].includes(id));
+ const next=(game.bullpens[teamId]||[]).filter(id=>!game.usedPitchers[teamId].includes(id)&&game.players[id]&&Number(game.unavailable?.[id]?.daysRemaining||0)<=0).sort((a,b)=>{const pa=game.players[a],pb=game.players[b];const score=p=>rating(p,"stamina",50)*.42+rating(p,"control",50)*.2+rating(p,"movement",50)*.2+ensurePlayerCondition(p)*.18;return score(pb)-score(pa);})[0];
  if(next){game.pitcherId[teamId]=next;game.usedPitchers[teamId].push(next);game.pitcherBattersFaced??={};game.pitcherBattersFaced[next]=0;log(game,"AI 牛棚調度："+game.players[next].name+" 接替投球");}
 }
 function trySteal(game,teamId,force=false){
