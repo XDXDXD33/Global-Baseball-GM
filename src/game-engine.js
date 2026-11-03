@@ -227,7 +227,7 @@ function random(game){game.rngState=(Math.imul(game.rngState,1664525)+1013904223
 export function createGame({fixture,players,lineups,seed=1,tactics={},userTeamId=null,workload={},injuries={}}){
  const byId=Object.fromEntries(players.map(p=>[p.id,clonePlayer(p)]));
  const isInjured=pid=>Number(injuries[pid]?.daysRemaining||0)>0;
- const starter=id=>{const rotation=(lineups[id]?.rotation||[]).filter(pid=>byId[pid]&&!isInjured(pid)),slot=rotation.length?(Math.max(1,fixture.matchday||1)-1)%rotation.length:0;return byId[rotation[slot]]||players.find(p=>p.clubId===id&&p.position==="SP"&&!isInjured(p.id));};
+ const starter=id=>{const rotation=(lineups[id]?.rotation||[]).filter(pid=>byId[pid]&&!isInjured(pid)),slot=rotation.length?(Math.max(1,fixture.matchday||1)-1)%rotation.length:0,ordered=[...rotation.slice(slot),...rotation.slice(0,slot)],rested=ordered.filter(pid=>ensurePitcherStamina(byId[pid])>=45);const chosen=rested[0]||ordered.sort((a,b)=>ensurePitcherStamina(byId[b])-ensurePitcherStamina(byId[a]))[0];return byId[chosen]||players.find(p=>p.clubId===id&&p.position==="SP"&&!isInjured(p.id));};
  const lineupFor=id=>{const eligible=(lineups[id]?.lineup||[]).filter(pid=>byId[pid]?.clubId===id&&!isInjured(pid));const used=new Set(eligible);for(const p of players.filter(p=>p.clubId===id&&!["SP","RP","P"].includes(p.position)))if(eligible.length<9&&!used.has(p.id)&&!isInjured(p.id)){eligible.push(p.id);used.add(p.id);}return eligible;};
  const home=starter(fixture.homeId),away=starter(fixture.awayId);
  if(!home||!away)throw new Error("兩隊都需要至少一名先發投手");
