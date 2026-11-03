@@ -30,7 +30,7 @@ export function applyPlayerGameLoad(state,game){
 export function recoverPlayerConditions(state){
  for(const p of state.players||[]){
   const injured=Number(state.injuries?.[p.id]?.daysRemaining||0)>0;
-  const recovery=injured?.35:(p.position==="SP"?3.2:2.5);
+  const recovery=injured?0.35:(p.position==="SP"?3.2:2.5);
   p.condition=clamp(ensurePlayerCondition(p)+recovery,0,100);if(p.position==="SP"||p.position==="RP"||p.position==="P"){const staminaRecovery=injured?1.5:p.position==="SP"?22:28;p.pitcherStamina=clamp(ensurePitcherStamina(p)+staminaRecovery,0,100);}
  }
 }
