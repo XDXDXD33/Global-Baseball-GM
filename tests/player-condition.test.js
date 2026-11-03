@@ -15,6 +15,13 @@ test("rest restores condition while injured players recover more slowly",()=>{
  recoverPlayerConditions(state);
  assert.equal(state.players[0].condition,52.5);assert.equal(state.players[1].condition,50.35);
 });
+test("pitcher stamina falls with workload and returns with rest",()=>{
+ const state={players:[{id:"sp",position:"SP",condition:80,pitcherStamina:100}],injuries:{}};
+ applyPlayerGameLoad(state,{batterStats:{},fieldingStats:{},pitcherStats:{sp:{pitches:90}}});
+ assert.equal(state.players[0].pitcherStamina,80.2);
+ recoverPlayerConditions(state);
+ assert.equal(state.players[0].pitcherStamina,100);
+});
 test("legacy players receive a safe default condition",()=>{
  const p={};assert.equal(ensurePlayerCondition(p),72);assert.equal(conditionLabel(p),"狀態普通");
 });
