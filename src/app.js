@@ -155,7 +155,7 @@ function inboxPage(){
  const reports=(state.aiClubReports||[]).slice().reverse().map(r=>({id:"ai-"+r.id,date:"第 "+r.matchday+" 日",title:club(r.teamId)?.name||r.teamId,body:r.message,type:r.type}));
  const proposals=(state.aiTradeProposals||[]).filter(p=>p.status==="pending").map(p=>({id:"proposal-"+p.id,date:"第 "+p.matchday+" 日",title:"交易提案待處理",body:(club(p.teamId)?.name||p.teamId)+" 希望以 "+p.aiPlayerName+" 交換 "+p.userPlayerName+"。請前往交易中心檢視。",type:"trade"}));
  const draft=state.draft?.status==="active"?[{id:"draft-"+state.season,date:"本季選秀",title:"選秀會正在進行",body:state.draft.currentTeamId===state.clubId?"輪到本隊選秀，請前往二軍管理／選秀會完成選擇。":"其他球隊正在選秀，請前往二軍管理查看進度。",type:"draft"}]:[];
- const expiring=state.players.filter(p=>p.clubId===state.clubId&&!p.retired&&Number(state.contracts?.[p.id]?.yearsRemaining||0)<=1).map(p=>({id:"renew-"+p.id,date:"球季結束前",title:"合約即將到期："+p.name,body:"目前年薪 "+money(state.contracts?.[p.id]?.salary||estimatePlayerSalary(p))+"。請前往球團營運檢視續約報價與球員資料。",type:"renew"}));
+ const expiring=state.players.filter(p=>p.clubId===state.clubId&&!p.retired&&Number(state.contracts?.[p.id]?.yearsRemaining||0)<=1).map(p=>({id:"renew-"+p.id,date:"球季結束前",title:"合約即將到期："+p.name,body:"目前年薪 $"+Math.round(state.contracts?.[p.id]?.salary||estimatePlayerSalary(p)).toLocaleString()+"。請前往球團營運檢視續約報價與球員資料。",type:"renew"}));
  const items=[...proposals,...draft,...expiring,...reports].slice(0,100);
  return `<section class="panel"><div class="panel-heading-row"><div><h3>球團信箱</h3><p class="field-help">聯盟動態、AI 球隊補強、交易提案、選秀與合約提醒都會集中在這裡。</p></div><span class="tag real">${items.length} 封訊息</span></div>${items.map(m=>`<article class="mail-item"><div class="mail-meta"><span class="tag ${m.type==="trade"?"real":"fake"}">${m.type==="trade"?"交易":m.type==="draft"?"選秀":m.type==="renew"?"續約":"聯盟消息"}</span><small>${esc(m.date)}</small></div><h4>${esc(m.title)}</h4><p>${esc(m.body)}</p>${m.type==="trade"||m.type==="draft"||m.type==="renew"?`<button class="button button-quiet" data-go-page="${m.type==="trade"?"trades":m.type==="draft"?"farm":"operations"}">前往處理 →</button>`:""}</article>`).join("")||'<p class="empty-state">目前沒有新訊息。球團有新提案或重要日程時，會在這裡留下紀錄。</p>'}</section>`;
 }
@@ -222,6 +222,7 @@ function render(){
  }
  bindUniversalPlayerTables();
  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ const inboxNav=document.querySelector('[data-page="inbox"] span');if(inboxNav){const unread=(state.aiClubReports||[]).length+(state.aiTradeProposals||[]).filter(x=>x.status==="pending").length+(state.draft?.status==="active"?1:0);inboxNav.textContent=unread?"球團信箱 ("+unread+")":"球團信箱";}
  const exportBtn=$("#export-btn");if(exportBtn)exportBtn.addEventListener("click",exportSave);
  document.querySelectorAll("[data-go-page]").forEach(b=>b.addEventListener("click",()=>{page=b.dataset.goPage;render();}));
  if(page==="roster"){bindRosterPage();bindRosterTools(state,persist,render);}
